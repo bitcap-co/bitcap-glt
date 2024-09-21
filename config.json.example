@@ -1,0 +1,9 @@
+{
+    "gitlabProjectID": "",
+    "gitlabToken": "",
+    "forceLocalPrograms": false,
+    "params": {
+        "awesomeHostURL": "",
+        "awesomeAPIKey": ""
+    }
+}
