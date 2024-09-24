@@ -10,7 +10,7 @@ GPU miners are traditionally hard to troubleshoot because 6, 8, or even 12 GPU d
 
 PCI devices are given what is known as a bus address (looks something like this: 01:00.0). As you will see in HiveOS for example, it shows a table of the detected GPUs in the system with its bus address on the left-hand side. While this gives you a unique identifier for each GPU detected in the rig, it doesn’t tell where they are on the motherboard in the real world.
 
-Supported Hardware
+## Supported Hardware
 
 Without getting too much of the details here, essentially there are two different places that the script uses to gather PCI information. These both are located in read-only memory and contain data provided by the OEM/BIOS manufacturer. This makes it very dependent on the OEM to give accurate information. Information provided by the OEM may be incomplete, inaccurate, or wrong. This is why the data provided by the script can’t be 100% trusted.
 
