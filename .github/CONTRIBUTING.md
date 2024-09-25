@@ -8,7 +8,7 @@ If creating an issue for baseboard support, please use the [BASEBOARD_SUPPORT_TE
 
 ### Providing data archives
 To get a data archive output from the script, make sure that Debug -> 'Keep Remote Files' is checked. If it is not, check the option and run on the same remote host again.
-You can find the archive at \<INSTALLDIR\>\gpu_lookup_tableGUI\gpu_lookup\\<REMOTEIP\>.tar.gz.
+You can find the archive at \<INSTALLDIR\>\gpu_lookup_tableGUI\gpu_lookup\\<REMOTEIP\>.tar.bz2.
 
 If the current baseboard is not supported, one can make the data archive manually by running the following with `plink.exe` from PuTTY.
 ```powershell
@@ -19,7 +19,7 @@ $payload = "$bios_info lsmod | grep -oE 'nvidia|amdgpu' -m 1 > /tmp/gpu_driver.t
 plink.exe -ssh -pw `"$pl_passwd`" -batch user@$remote_ip `"$payload`" > ..\data.tar.bz2"
 ```
 #### Naming data archives
-Before attaching the archive to an issue/pull request, rename the archive to `data.tar.gz`. If supplying multiple archives, number the archives like so `data1.tar.gz`, `data2.tar.gz`, etc.
+Before attaching the archive to an issue/pull request, rename the archive to `data.tar.bz2`. If supplying multiple archives, number the archives like so `data1.tar.bz2`, `data2.tar.bz2`, etc.
 
 ### Baseboard support
 This section will instruct you how to get the necessary data to report/implement baseboard support.
