@@ -13,14 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install ps2exe module via PSGallery
-        shell: pwsh
+        shell: powershell
         run: |
           Set-PSRepository PSGallery -InstallationPolicy Trusted
           Install-Module -Name ps2exe -Force
           Import-Module -Name ps2exe
-      - name: Build exe from glt_launcher.ps1
-        shell: powershell
-        run: |
           Invoke-ps2exe -noConsole .\glt_launcher.ps1 .\glt_launcher.exe
       - name: Setup package directory
         shell: powershell
