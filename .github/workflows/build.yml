@@ -1,0 +1,41 @@
+name: Build using ps2exe
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  Build-GLT-With-ps2exe:
+    name: Build GLT with ps2exe and package
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install ps2exe module
+        shell: powershell
+        run: |
+          Install-Module ps2exe
+      - name: Build exe from glt_launcher.ps1
+        shell: powershell
+        run: |
+          ps2exe -noConsole .\glt_launcher.ps1 .\glt_launcher.exe
+      - name: Setup package directory
+        shell: powershell
+        run: |
+          New-Item -Path .\dist\gpu_lookup\src\ -ItemType Directory
+          Rename-Item -Path .\config.json.example -NewName .\config.json
+          Copy-Item -Path .\config.json -Destination .\dist\gpu_lookup\src\
+          Copy-Item -Path .\glt_launcher.exe -Destination .\dist\gpu_lookup\src\
+          Copy-Item -Path .\resources\* -Destination .\dist\gpu_lookup\src\resources\icons -Recurse
+          Copy-Item -Path .\GUI.xaml -Destination .\dist\gpu_lookup\src\
+          Copy-Item .\glt_launcher.ps1,.\gpu_lookup_tableGUI.ps1,.\help_man.ps1 -Destination .\dist\gpu_lookup\src\
+      - name: Compress package directory
+        shell: powershell
+        run: |
+          Rename-Item -Path .\dist -NewName gpu_lookup_tableGUI
+          Compress-Archive -Path .\gpu_lookup_tableGUI\ -DestinationPath glt_${{github.ref_name}}.zip -Force
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "glt_${{github.ref_name}}.zip"
+          draft: true
