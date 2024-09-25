@@ -18,7 +18,8 @@ $bios_info = 'for d in system-manufacturer system-product-name bios-release-date
 $payload = "$bios_info lsmod | grep -oE 'nvidia|amdgpu' -m 1 > /tmp/gpu_driver.txt; cat `$GPU_DETECT_JSON > /tmp/gpu_detect.json; sudo dmidecode -s baseboard-product-name > /tmp/mb_product_name.txt; sudo dmidecode -t 9 > /tmp/dmidecodet9.txt; sudo biosdecode > /tmp/biosdecode.txt; sudo lspci -mm > /tmp/lspcimm.txt; sudo lshw | grep 'pci@' > /tmp/lshwpci.txt; cd /tmp && tar -jcf - gpu_driver.txt gpu_detect.json mb_product_name.txt dmidecodebios.txt dmidecodet9.txt biosdecode.txt lspcimm.txt lshwpci.txt console_output.txt"
 plink.exe -ssh -pw `"$pl_passwd`" -batch user@$remote_ip `"$payload`" > ..\data.tar.bz2"
 ```
-
+#### Naming data archives
+Before attaching the archive to an issue/pull request, rename the archive to `data.tar.gz`. If supplying multiple archives, number the archives like so `data1.tar.gz`, `data2.tar.gz`, etc.
 
 ### Baseboard support
 This section will instruct you how to get the necessary data to report/implement baseboard support.
