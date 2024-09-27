@@ -258,7 +258,7 @@ Function Read-Baseboard-BIOS
 }
 
 
-Function Read-Baseboard-Product-Name
+Function Update-Baseboard-Product-Name
 {
     $dmi_baseboard = (Get-Content .\mb_product_name.txt)
     for ($idx = 0; $idx -lt $SUPPORTED_BASEBOARDS.Count; $idx++)
@@ -717,6 +717,7 @@ else
 $PIRQ_FOUND = $FALSE # Flag for $PIRQ table found
 $mb_product_name = (Get-Baseboard-Product-Name)
 Write-Debug "Baseboard: $mb_product_name"
+$mb_product = (Update-Baseboard-Product-Name)
 if (
     (Test-For-PIRQ-Table) -eq 0 -or
     # OctoMiner 12x exemption
