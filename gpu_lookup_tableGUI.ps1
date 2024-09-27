@@ -111,7 +111,7 @@ Function Read-All-PCI-Busids
     if (
         $PIRQ_FOUND -or
         # PRIME Z390 exemption
-        (Get-Content .\mb_product_name.txt) -eq 'PRIME Z390-P'
+        $mb_product_name -eq 'PRIME Z390-P'
     )
     {
         $pdev = @()
@@ -189,7 +189,7 @@ Function Read-PCI-Slot-Info
     param(
         [string]$query
     )
-    if ((Get-Content .\mb_product_name.txt) -eq 'PRIME Z390-P')
+    if ($mb_product_name -eq 'PRIME Z390-P')
     {
         $pci_busids = Write-Output -NoEnumerate $BUSID_REGEX.Matches((& Get-Content .\dmidecodet9.txt | Select-String -Pattern 'Bus Address')) | ForEach-Object { $_.Value.Trim(':') }
     }
@@ -206,7 +206,7 @@ Function Read-PCI-Slot-Info
             $pci_slot_info = (Get-Content .\dmidecodet9.txt -TotalCount ($empty_pci_slot_lines[$empty_index]) | Select-String -CaseSensitive -Pattern $query -Context 12, 0).Line | Select-Object -Last 1 | Show-Column -Column 1
             $empty_index++
         }
-        if ((Get-Content .\mb_product_name.txt) -eq 'TB360-BTC D+')
+        if ($mb_product_name -eq 'TB360-BTC D+')
         {
             if ($query -eq 'Designation')
             {
@@ -260,15 +260,14 @@ Function Read-Baseboard-BIOS
 
 Function Update-Baseboard-Product-Name
 {
-    $dmi_baseboard = (Get-Content .\mb_product_name.txt)
     for ($idx = 0; $idx -lt $SUPPORTED_BASEBOARDS.Count; $idx++)
     {
-        if ($SUPPORTED_BASEBOARDS[$idx] -eq $dmi_baseboard)
+        if ($SUPPORTED_BASEBOARDS[$idx] -eq $mb_product_name)
         {
             return ( $idx + 1 )
         }
     }
-    return $dmi_baseboard
+    return $mb_product_name
 }
 
 
@@ -309,7 +308,7 @@ Function Read-PIRQ-Device-Slot-Ids
     }
     $pirq_device_slot_ids = @()
     # OctoMiner 12x
-    if ($mb_product -eq 5 -or $mb_product -eq 6)
+    if ($mb_product_name -eq "12XTREME" -or $mb_product_name -eq "X12ULTRA")
     {
         foreach ($bus in $devices)
         {
@@ -350,7 +349,7 @@ Function Read-PIRQ-Device-Slot-Ids
             $cp_of_pirq_map[0] = ''
         }
         # fix BTC-X37 showing slot 1 MISSING when slot 7 is MISSING
-        if ($mb_product -eq 1 -or $mb_product -eq 2)
+        if ($mb_product_name -eq "BTC-T37" -or $mb_product_name -eq "BTC-S37")
         {
             if ($pirq_slot_number -eq '33' -and $bus -eq '01:00.0')
             {
@@ -360,7 +359,7 @@ Function Read-PIRQ-Device-Slot-Ids
             }
         }
         # fix B75 slot 6 not having slot number
-        if ($mb_product -eq 9)
+        if ($mb_product_name -eq "B75")
         {
             if ($null -eq $is_pirq_slot_number_match)
             {
@@ -721,7 +720,7 @@ $mb_product = (Update-Baseboard-Product-Name)
 if (
     (Test-For-PIRQ-Table) -eq 0 -or
     # OctoMiner 12x exemption
-    $mb_product -eq 5 -or $mb_product -eq 6
+    $mb_product_name -eq "12XTREME" -or $mb_product_name -eq "X12ULTRA"
 )
 {
     $PIRQ_FOUND = $TRUE
