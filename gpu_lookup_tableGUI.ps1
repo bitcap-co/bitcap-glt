@@ -236,6 +236,12 @@ Function Get-PCI-Handle-Count
 }
 
 
+Function Get-Baseboard-Product-Name
+{
+    return (Get-Content .\mb_product_name.txt)
+}
+
+
 # PIRQ TABLE FUNCS
 
 
@@ -709,7 +715,8 @@ else
 { $miner = (Get-Content .\miner.json) | ConvertFrom-Json }
 
 $PIRQ_FOUND = $FALSE # Flag for $PIRQ table found
-$mb_product = (Read-Baseboard-Product-Name)
+$mb_product_name = (Get-Baseboard-Product-Name)
+Write-Debug "Baseboard: $mb_product_name"
 if (
     (Test-For-PIRQ-Table) -eq 0 -or
     # OctoMiner 12x exemption
