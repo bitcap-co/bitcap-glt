@@ -466,7 +466,7 @@ Function Get-GPU-Ids
             $gid++
         }
         else
-        { $gids[$idx] = '' }
+        { $gids[$idx] = '-' }
     }
     return , $gids
 }
