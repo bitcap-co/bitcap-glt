@@ -11,6 +11,24 @@ Function Expand-Tar
 
 $P7Zip = (Get-ChildItem -Path 'C:\Program Files\7-Zip\' -File 7z.exe).FullName
 
+
+Function Test-Expected-Value
+{
+    param(
+        $Name,
+        $Expected,
+        $Result
+    )
+    Write-Host "Expected value of ${Name}:", "$Expected"
+    if ($null -eq $Expected -or $Expected -isnot [System.Array])
+    {
+        if ($Expected -eq $Result) { Write-Host "Passed"} else { Write-Error ('ERROR: got {0}' -f ($Result -join ','))}
+    } elseif ($Expected -is [System.Array])
+    {
+        if ($(Compare-Object $Expected $Result)) { Write-Error ('ERROR: got {0}' -f ($Result -join ','))} else { Write-Host "Passed" }
+    }
+}
+
 $test_results = @()
 $test_dirs = '.\tests\Amd', '.\tests\Nvidia', '.\tests\Baseboards'
 foreach ($test_path in $test_dirs)
@@ -29,27 +47,27 @@ foreach ($test_path in $test_dirs)
             . .\expected.ps1
             . .\gpu_lookup_tableGUI.ps1 -ConfigFile ".\configs\default.json" -Verbose
             # Test mb_product_name
-            Write-Host 'Expected value of $mb_product_name:' "$expected_mb_product_name"
-            if ($expected_mb_product_name -eq $mb_product_name) {Write-Host "Passed" } else { Write-Error "ERROR: got $mb_product_name" }
+            Test-Expected-Value -Name "Baseboard Product Name" -Expected $expected_mb_product_name -Result $mb_product_name
             # Test for $PIRQ_FOUND
-            Write-Host 'Expected value of $PIRQ_FOUND:', "$expected_PIRQ_FOUND"
-            if ($expected_PIRQ_FOUND -eq $PIRQ_FOUND) {Write-Host "Passed" } else { Write-Error "ERROR: got $PIRQ_FOUND" }
+            Test-Expected-Value -Name "PIRQ_FOUND" -Expected $expected_PIRQ_FOUND -Result $PIRQ_FOUND
             # Test $pirq_map
-            Write-Host 'Expected value of $pirq_map:', "$expected_pirq_map"
-            if ($null -eq $expected_pirq_map) {
-                if ($expected_pirq_map -eq $pirq_map) {Write-Host "Passed" } else { Write-Error ('pirq map - {0}' -f ($pirq_map -join ',')) }
-            } else {
-                if ($(Compare-Object $expected_pirq_map $pirq_map -PassThru)) { Write-Error ('pirq map - {0}' -f ($pirq_map -join ','))} else { Write-Host "Passed" }
-            }
+            Test-Expected-Value -Name "PIRQ Map" -Expected $expected_pirq_map -Result $pirq_map
             # Test $pci_busids
-            Write-Host 'Expected value of $pci_busids:', ('PCI BUSIDS - {0}' -f ($expected_pci_busids -join ','))
-            if ($(Compare-Object $expected_pci_busids $pci_busids -PassThru)) { Write-Error ('PCI BUSIDS - {0}' -f ($pci_busids -join ','))} else { Write-Host "Passed" }
+            Test-Expected-Value -Name "PCI BUSIDS" -Expected $expected_pci_busids -Result $pci_busids
+            # Test $pci_missing_devices
+            Test-Expected-Value -Name "PCI Missing Devices" -Expected $expected_pci_missing_devices -Result $pci_missing_devices
+            # Test $pci_info_ids
+            Test-Expected-Value -Name "PCI Info IDs" -Expected $expected_pci_info_ids -Result $pci_info_ids
+            # Test $pci_info_designations
+            Test-Expected-Value -Name "PCI Info Designations" -Expected $expected_pci_info_designations -Result $pci_info_designations
             # Test $gpu_busids
-            Write-Host 'Expected value of $gpu_busids:', ('GPU BUSIDS - {0}' -f ($expected_gpu_busids -join ','))
-            if ($(Compare-Object $expected_gpu_busids $gpu_busids -PassThru)) { Write-Error ('GPU BUSIDS - {0}' -f ($gpu_busids -join ','))} else { Write-Host "Passed" }
+            Test-Expected-Value -Name "GPU BUSIDS" -Expected $expected_gpu_busids -Result $gpu_busids
+            # Test $gpu_ids
+            Test-Expected-Value -Name "GPU Info IDs" -Expected $expected_gpu_ids -Result $gpu_ids
+            # Test $gi_indicators
+            Test-Expected-Value -Name "GPU GI Indicators" -Expected $expected_gi_indicators -Result $gi_indicators
             # Test detected cards
-            Write-Host 'Expected value of $total_detected_cards:' "$expected_total_detected_cards"
-            if ($expected_total_detected_cards -eq $n_detected_cards) {Write-Host "Passed"} else { Write-Error "ERROR: got $n_detected_cards"}
+            Test-Expected-Value -Name "Total Detected Cards" -Expected $expected_total_detected_cards -Result $n_detected_cards
             # Test output
 
             break
