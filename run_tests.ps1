@@ -55,13 +55,15 @@ foreach ($test_path in $test_dirs)
             # Test $pci_busids
             Test-Expected-Value -Name "PCI BUSIDS" -Expected $expected_pci_busids -Result $pci_busids
             # Test $pci_missing_devices
-            Test-Expected-Value -Name "PCI Missing Devices" -Expected $expected_pci_missing_devices -Result $pci_missing_devices
+            Test-Expected-Value -Name "PCI Missing Devices" -Expected $expected_pci_missing_devices -Result $pci_missing_devices.Count
             # Test $pci_info_ids
             Test-Expected-Value -Name "PCI Info IDs" -Expected $expected_pci_info_ids -Result $pci_info_ids
             # Test $pci_info_designations
             Test-Expected-Value -Name "PCI Info Designations" -Expected $expected_pci_info_designations -Result $pci_info_designations
             # Test $gpu_busids
             Test-Expected-Value -Name "GPU BUSIDS" -Expected $expected_gpu_busids -Result $gpu_busids
+            # Test $gpu_missing_devices
+            Test-Expected-Value -Name "GPU Missing Devices" -Expected $expected_gpu_missing_devices -Result $gpu_missing_devices.Count
             # Test $gpu_ids
             Test-Expected-Value -Name "GPU Info IDs" -Expected $expected_gpu_ids -Result $gpu_ids
             # Test $gi_indicators
