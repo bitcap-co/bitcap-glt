@@ -141,7 +141,7 @@ Function Read-All-PCI-Busids
                 }
             }
         }
-        return , $pdev
+        return Write-Output -NoEnumerate $pdev
     }
     Write-Output -NoEnumerate $BUSID_REGEX.Matches((& Get-Content .\dmidecodet9.txt | Select-String -Pattern 'Bus Address')) | ForEach-Object { $_.Value.Trim(':') }
 }
@@ -155,7 +155,7 @@ Function Read-All-GPU-Busids
         $installed_gpu = (Get-Content .\lshwpci.txt | Select-String -Pattern "0000:$bus" -Context 0, (Find-GPU-Context-Offset ) | Out-String -Stream | Select-String -Pattern $GPU_BUSID_REGEX -AllMatches).Matches[-1].Value.Trim(':')
         $gdev += $installed_gpu
     }
-    return , $gdev
+    return Write-Output -NoEnumerate $gdev
 }
 
 
@@ -168,7 +168,7 @@ Function Get-GPU-Info
         $bus_info = $gpu_detect | Where-Object { $_.busid -eq $bus }
         $gpu_infos += '{0} {1} {2}' -f ($bus_info.subvendor, $bus_info.name, $bus_info.mem)
     }
-    return , $gpu_infos
+    return Write-Output -NoEnumerate $gpu_infos
 }
 
 
@@ -180,7 +180,7 @@ Function Read-Filtered-PCI-Busids
         $attached_pci = (Get-Content .\lshwpci.txt | Select-String -Pattern "0000:$bus" -Context (Find-GPU-Context-Offset), 0 | Out-String -Stream | Select-String -Pattern $BUSID_REGEX -AllMatches).Matches[0].Value.Trim(':')
         $pdev += $attached_pci
     }
-    return , $pdev
+    return Write-Output -NoEnumerate $pdev
 }
 
 
@@ -225,7 +225,7 @@ Function Read-PCI-Slot-Info
         else
         { $pci_query_info += $pci_slot_info }
     }
-    return , $pci_query_info
+    return Write-Output -NoEnumerate $pci_query_info
 }
 
 
@@ -280,21 +280,21 @@ Function Search-PIRQ-Hard-Maps
     switch ($support_idx)
     {
         # BTC-S37, BTC-T37
-        { ($_ -eq 1) -or ($_ -eq 2) } { return , $x37_pirq_hard_map }
+        { ($_ -eq 1) -or ($_ -eq 2) } { return Write-Output -NoEnumerate $x37_pirq_hard_map }
         # ONDA B250
-        3 { return , $b250_pirq_hard_map }
+        3 { return Write-Output -NoEnumerate $b250_pirq_hard_map }
         # TB85
-        4 { return , $tb85_pirq_hard_map }
+        4 { return Write-Output -NoEnumerate $tb85_pirq_hard_map }
         #  12XTREME, X12ULTRA
-        { ($_ -eq 5) -or ($_ -eq 6) } { return , $octo12_hard_map }
+        { ($_ -eq 5) -or ($_ -eq 6) } { return Write-Output -NoEnumerate $octo12_hard_map }
         # B85 ULTRA
-        7 { return , $octo8_pirq_hard_map }
+        7 { return Write-Output -NoEnumerate $octo8_pirq_hard_map }
         # CRESCENTBAY
-        8 { return , $crescentbay_pirq_hard_map }
+        8 { return Write-Output -NoEnumerate $crescentbay_pirq_hard_map }
         # B75
-        9 { return , $b75_pirq_hard_map }
+        9 { return Write-Output -NoEnumerate $b75_pirq_hard_map }
         # skylake
-        10 { return , $skylake_pirq_hard_map }
+        10 { return Write-Output -NoEnumerate $skylake_pirq_hard_map }
     }
 }
 
@@ -321,9 +321,9 @@ Function Read-PIRQ-Device-Slot-Ids
                 }
             }
         }
-        return , $pirq_device_slot_ids
+        return Write-Output -NoEnumerate $pirq_device_slot_ids
     }
-    $cp_of_pirq_map = $pirq_map
+    $cp_of_pirq_map = ,$pirq_map
     foreach ($bus in $devices)
     {
         if ($bus -eq 'MISSING') { continue }
@@ -379,7 +379,8 @@ Function Read-PIRQ-Device-Slot-Ids
         }
     }
     Remove-Variable devices
-    return , $pirq_device_slot_ids
+    Remove-Variable cp_of_pirq_map
+    return Write-Output -NoEnumerate $pirq_device_slot_ids
 }
 
 
@@ -399,7 +400,7 @@ Function Get-Missing-Slot-Ids
             $missing_slot_ids += $id
         }
     }
-    return , $missing_slot_ids
+    return Write-Output -NoEnumerate $missing_slot_ids
 }
 
 
@@ -410,7 +411,7 @@ Function Get-PIRQ-Device-Designations
     {
         $pirq_device_slot_designations += "PCIE $( $id + 1 )"
     }
-    return , $pirq_device_slot_designations
+    return Write-Output -NoEnumerate $pirq_device_slot_designations
 }
 
 
@@ -468,7 +469,7 @@ Function Get-GPU-Ids
         else
         { $gids[$idx] = '-' }
     }
-    return , $gids
+    return Write-Output -NoEnumerate $gids
 }
 
 
@@ -514,7 +515,7 @@ Function Test-GPU-Indexes
     }
     if ($validated.Length)
     {
-        return , $validated
+        return Write-Output -NoEnumerate $validated
     }
 }
 
