@@ -1,15 +1,15 @@
-Function Expand-Tar
+Function Expand-Tar2
 {
     param(
         [string]$tarFile,
         [string]$dest
     )
 
-    & $P7zip -bso0 -bsp0 x $tarFile -aoa
+    & $P7zip2 -bso0 -bsp0 x $tarFile -aoa
 
 }
 
-$P7Zip = (Get-ChildItem -Path 'C:\Program Files\7-Zip\' -File 7z.exe).FullName
+$P7Zip2 = (Get-ChildItem -Path 'C:\Program Files\7-Zip\' -File 7z.exe).FullName
 
 
 Function Test-Expected-Value
@@ -30,7 +30,7 @@ Function Test-Expected-Value
 }
 
 $test_results = @()
-$test_dirs = '.\tests\Amd', '.\tests\Nvidia', '.\tests\Baseboards'
+$test_dirs = '.\tests\Amd'
 foreach ($test_path in $test_dirs)
 {
     if (Test-Path $test_path)
@@ -38,10 +38,10 @@ foreach ($test_path in $test_dirs)
         $test_path = Resolve-Path $test_path
         foreach ($test in (Get-ChildItem -Path $test_path -Recurse -Filter '*.tar.bz2').FullName)
         {
-            Expand-Tar $test .
+            Expand-Tar2 $test .
             $archive_name = $test.Split('\')[-1]
             $tar_name = $archive_name.Replace('.bz2', '')
-            Expand-Tar $tar_name .
+            Expand-Tar2 $tar_name .
             Remove-Item $tar_name
             Write-Host "Testing $($test.Replace($PWD, ''))..."
             . .\expected.ps1
@@ -72,7 +72,6 @@ foreach ($test_path in $test_dirs)
             Test-Expected-Value -Name "Total Detected Cards" -Expected $expected_total_detected_cards -Result $n_detected_cards
             # Test output
 
-            break
             # notepad.exe biosdecode.txt
             # notepad.exe dmidecodet9.txt
             # if ((test-path .\console_output.txt))
@@ -107,6 +106,5 @@ foreach ($test_path in $test_dirs)
             # }
         }
     }
-    break
 }
-Write-Output $test_results
+#Write-Output $test_results
