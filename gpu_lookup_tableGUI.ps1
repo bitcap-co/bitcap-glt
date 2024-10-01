@@ -711,8 +711,8 @@ if (-not $config.debug.debugMode)
 
     Remove-Variable pl_passwd -ErrorAction SilentlyContinue
 }
-else
-{ $miner = (Get-Content .\miner.json) | ConvertFrom-Json }
+# else
+# { $miner = (Get-Content .\miner.json) | ConvertFrom-Json }
 
 $PIRQ_FOUND = $FALSE # Flag for $PIRQ table found
 $mb_product_name = (Get-Baseboard-Product-Name)
