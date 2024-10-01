@@ -323,7 +323,7 @@ Function Read-PIRQ-Device-Slot-Ids
         }
         return Write-Output -NoEnumerate $pirq_device_slot_ids
     }
-    $cp_of_pirq_map = ,$pirq_map
+    $cp_of_pirq_map = $pirq_map.Clone()
     foreach ($bus in $devices)
     {
         if ($bus -eq 'MISSING') { continue }
