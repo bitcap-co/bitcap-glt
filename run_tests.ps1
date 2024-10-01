@@ -22,10 +22,48 @@ Function Test-Expected-Value
     Write-Host "Expected value of ${Name}:", "$Expected"
     if ($null -eq $Expected -or $Expected -isnot [System.Array])
     {
-        if ($Expected -eq $Result) { Write-Host "Passed"} else { Write-Error ('ERROR: got {0}' -f ($Result -join ','))}
-    } elseif ($Expected -is [System.Array])
+        if ($Expected -eq $Result)
+        {
+            Write-Host 'Passed'
+            return [PSCustomObject]@{
+                test   = $Name
+                passed = $true
+
+            }
+        }
+        else
+        {
+            Write-Error ('ERROR: got {0}' -f ($Result -join ','))
+            return [PSCustomObject]@{
+                test     = $Name
+                passed   = $false
+                expected = $Expected
+                result   = $Result
+            }
+        }
+    }
+    elseif ($Expected -is [System.Array])
     {
-        if ($(Compare-Object $Expected $Result)) { Write-Error ('ERROR: got {0}' -f ($Result -join ','))} else { Write-Host "Passed" }
+        $compare = (Compare-Object $Expected $Result)
+        if ($compare)
+        {
+            Write-Error ('ERROR: got {0}' -f ($Result -join ','))
+            return [PSCustomObject]@{
+                test     = $Name
+                passed   = $false
+                expected = ($compare | Where-Object {$_.SideIndicator -eq '<='}).InputObject -join ", "
+                result   = ($compare | Where-Object {$_.SideIndicator -eq '=>'}).InputObject -join ", "
+            }
+        }
+        else
+        {
+            Write-Host 'Passed'
+            return [PSCustomObject]@{
+                test   = $Name
+                passed = $true
+
+            }
+        }
     }
 }
 
@@ -43,68 +81,59 @@ foreach ($test_path in $test_dirs)
             $tar_name = $archive_name.Replace('.bz2', '')
             Expand-Tar2 $tar_name .
             Remove-Item $tar_name
+            $n_tests_passed = 0
+            $tests = @()
+            $f_tests = @()
+            $f_tests_results = @()
             Write-Host "Testing $($test.Replace($PWD, ''))..."
             . .\expected.ps1
-            . .\gpu_lookup_tableGUI.ps1 -ConfigFile ".\configs\default.json" -Verbose
+            . .\gpu_lookup_tableGUI.ps1 -ConfigFile '.\configs\tests.json'
             # Test mb_product_name
-            Test-Expected-Value -Name "Baseboard Product Name" -Expected $expected_mb_product_name -Result $mb_product_name
+            $tests += (Test-Expected-Value -Name 'Baseboard Product Name' -Expected $expected_mb_product_name -Result $mb_product_name)
             # Test for $PIRQ_FOUND
-            Test-Expected-Value -Name "PIRQ_FOUND" -Expected $expected_PIRQ_FOUND -Result $PIRQ_FOUND
+            $tests += (Test-Expected-Value -Name 'PIRQ_FOUND' -Expected $expected_PIRQ_FOUND -Result $PIRQ_FOUND)
             # Test $pirq_map
-            Test-Expected-Value -Name "PIRQ Map" -Expected $expected_pirq_map -Result $pirq_map
+            $tests += (Test-Expected-Value -Name 'PIRQ Map' -Expected $expected_pirq_map -Result $pirq_map)
             # Test $pci_busids
-            Test-Expected-Value -Name "PCI BUSIDS" -Expected $expected_pci_busids -Result $pci_busids
+            $tests += (Test-Expected-Value -Name 'PCI BUSIDS' -Expected $expected_pci_busids -Result $pci_busids)
             # Test $pci_missing_devices
-            Test-Expected-Value -Name "PCI Missing Devices" -Expected $expected_pci_missing_devices -Result $pci_missing_devices.Count
+            $tests += (Test-Expected-Value -Name 'PCI Missing Devices' -Expected $expected_pci_missing_devices -Result $pci_missing_devices.Count)
             # Test $pci_info_ids
-            Test-Expected-Value -Name "PCI Info IDs" -Expected $expected_pci_info_ids -Result $pci_info_ids
+            $tests += (Test-Expected-Value -Name 'PCI Info IDs' -Expected $expected_pci_info_ids -Result $pci_info_ids)
             # Test $pci_info_designations
-            Test-Expected-Value -Name "PCI Info Designations" -Expected $expected_pci_info_designations -Result $pci_info_designations
+            $tests += (Test-Expected-Value -Name 'PCI Info Designations' -Expected $expected_pci_info_designations -Result $pci_info_designations)
             # Test $gpu_busids
-            Test-Expected-Value -Name "GPU BUSIDS" -Expected $expected_gpu_busids -Result $gpu_busids
+            $tests += (Test-Expected-Value -Name 'GPU BUSIDS' -Expected $expected_gpu_busids -Result $gpu_busids)
             # Test $gpu_missing_devices
-            Test-Expected-Value -Name "GPU Missing Devices" -Expected $expected_gpu_missing_devices -Result $gpu_missing_devices.Count
+            $tests += (Test-Expected-Value -Name 'GPU Missing Devices' -Expected $expected_gpu_missing_devices -Result $gpu_missing_devices.Count)
             # Test $gpu_ids
-            Test-Expected-Value -Name "GPU Info IDs" -Expected $expected_gpu_ids -Result $gpu_ids
+            $tests += (Test-Expected-Value -Name 'GPU Info IDs' -Expected $expected_gpu_ids -Result $gpu_ids)
             # Test $gi_indicators
-            Test-Expected-Value -Name "GPU GI Indicators" -Expected $expected_gi_indicators -Result $gi_indicators
+            $tests += (Test-Expected-Value -Name 'GPU GI Indicators' -Expected $expected_gi_indicators -Result $gi_indicators)
             # Test detected cards
-            Test-Expected-Value -Name "Total Detected Cards" -Expected $expected_total_detected_cards -Result $n_detected_cards
+            $tests += (Test-Expected-Value -Name 'Total Detected Cards' -Expected $expected_total_detected_cards -Result $n_detected_cards)
             # Test output
+            foreach ($res in $tests)
+            {
+                if ($res.passed)
+                {
+                    $n_tests_passed += 1
+                }
+                else
+                {
+                    $f_tests += $res.test
+                    $f_tests_results += '{0}; expected {1}' -f $res.result, $res.expected
+                }
+            }
 
-            # notepad.exe biosdecode.txt
-            # notepad.exe dmidecodet9.txt
-            # if ((test-path .\console_output.txt))
-            # {
-            #     notepad.exe console_output.txt
-            # }
-            # notepad.exe lshwpci.txt
-            # notepad.exe lspcimm.txt
-            # notepad.exe mb_product_name.txt
-            # $cmd_args = '-ep Bypass', '.\gpu_lookup_tableGUI.ps1', '-ConfigFile', '.\configs\default.json', '-Verbose'
-            # Start-Process -FilePath powershell.exe -ArgumentList $cmd_args -NoNewWindow -Wait -
-            # $continue = Read-Host 'Did it work? (y/n) '
-            # if ($continue)
-            # {
-            #     $failed = $false
-            #     $issue = $null
-            #     if ($continue -eq 'n')
-            #     {
-            #         $failed = $true
-            #         $issue = Read-Host 'Describe issue: '
-            #     }
-            #     $test_results += [PSCustomObject]@{
-            #         test_path    = $test.Replace($PWD, '')
-            #         archive_name = $archive_name
-            #         failed       = $failed
-            #         issue        = $issue
-            #     }
-            #     Stop-Process -Name 'notepad'
-            #     Remove-Item .\192.168.*.json -ErrorAction SilentlyContinue
-            #     Remove-Item .\console_output.txt -ErrorAction SilentlyContinue
-            #     Remove-Item .\dmidecodebios.txt -ErrorAction SilentlyContinue
-            # }
+            $test_results += [PSCustomObject]@{
+                test_path     = $test.Replace($PWD, '')
+                tests_passed  = $n_tests_passed
+                total_ratio   = '{0}/{1}' -f $n_tests_passed, $tests.Count
+                failed        = $f_tests
+                failed_output = $f_tests_results
+            }
         }
     }
 }
-#Write-Output $test_results
+Write-Output $test_results
