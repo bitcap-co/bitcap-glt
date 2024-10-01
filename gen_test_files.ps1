@@ -39,7 +39,7 @@ Function Test-If-Empty
 
 $P7Zip2 = (Get-ChildItem -Path 'C:\Program Files\7-Zip\' -File 7z.exe).FullName
 
-$test_dirs = '.\tests\Amd'
+$test_dirs = '.\tests\Amd', '.\tests\Baseboards', '.\tests\Nvidia'
 foreach ($test_path in $test_dirs)
 {
     if (Test-Path $test_path)
@@ -88,6 +88,8 @@ $expected_total_detected_cards = {12}
             Update-Tar2 -tarFile $test -files ".\$tar_name"
             Remove-Item ".\$tar_name"
             Remove-Item .\expected.ps1
+            Remove-Item .\console_output.txt -ErrorAction SilentlyContinue
+            Remove-Item .\dmidecodebios.txt -ErrorAction SilentlyContinue
         }
     }
 }
