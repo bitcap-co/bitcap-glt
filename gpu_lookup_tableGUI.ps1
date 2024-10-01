@@ -7,7 +7,7 @@ if (! $ConfigFile) { $ConfigFile = '.\instance.json' }
 $config = (Get-Content $ConfigFile) | ConvertFrom-Json
 
 $AM_API_URL = $config.params.awesomeHostURL
-if (! $config.debug.debugMode)
+if (-not $config.debug.debugMode -and -not $config.tests.testMode)
 {
     if (! $config.params.awesomeAPIKey) { Throw 'ERROR (Missing API Key: Provide the api key with -AwesomeAPIKey)' }
 }
@@ -686,7 +686,7 @@ $remote_passwd = $config.options.input.passwd
 $search_list = ($config.options.input.filterList).Split(',')
 
 # Comment when debugging
-if (-not $config.debug.debugMode)
+if (-not $config.debug.debugMode -and -not $config.tests.testMode)
 {
     if (! $remote_passwd.Length)
     {
@@ -871,7 +871,10 @@ if ($config.options.checkGI)
 Remove-Item .\console_output.txt -ErrorAction SilentlyContinue
 
 Write-Verbose 'Generating GPU Lookup table...'
-Show-Table
+if (-not $config.tests.testMode)
+{
+    Show-Table
+}
 Write-Verbose 'Done!'
 
 Exit 0
