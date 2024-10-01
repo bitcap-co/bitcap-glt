@@ -308,7 +308,7 @@ Function Read-PIRQ-Device-Slot-Ids
     }
     $pirq_device_slot_ids = @()
     # OctoMiner 12x
-    if ($mb_product_name -eq "12XTREME" -or $mb_product_name -eq "X12ULTRA")
+    if ($mb_product_name -eq '12XTREME' -or $mb_product_name -eq 'X12ULTRA')
     {
         foreach ($bus in $devices)
         {
@@ -349,7 +349,7 @@ Function Read-PIRQ-Device-Slot-Ids
             $cp_of_pirq_map[0] = ''
         }
         # fix BTC-X37 showing slot 1 MISSING when slot 7 is MISSING
-        if ($mb_product_name -eq "BTC-T37" -or $mb_product_name -eq "BTC-S37")
+        if ($mb_product_name -eq 'BTC-T37' -or $mb_product_name -eq 'BTC-S37')
         {
             if ($pirq_slot_number -eq '33' -and $bus -eq '01:00.0')
             {
@@ -359,7 +359,7 @@ Function Read-PIRQ-Device-Slot-Ids
             }
         }
         # fix B75 slot 6 not having slot number
-        if ($mb_product_name -eq "B75")
+        if ($mb_product_name -eq 'B75')
         {
             if ($null -eq $is_pirq_slot_number_match)
             {
@@ -721,7 +721,7 @@ $mb_product = (Update-Baseboard-Product-Name)
 if (
     (Test-For-PIRQ-Table) -eq 0 -or
     # OctoMiner 12x exemption
-    $mb_product_name -eq "12XTREME" -or $mb_product_name -eq "X12ULTRA"
+    $mb_product_name -eq '12XTREME' -or $mb_product_name -eq 'X12ULTRA'
 )
 {
     $PIRQ_FOUND = $TRUE
