@@ -16,7 +16,12 @@ $AM_API_KEY = $config.params.awesomeAPIKey
 # External Programs
 $putty = $config.programs.putty
 $plink = $config.programs.plink
-$P7Zip = $config.programs.p7zip
+
+if (-not $config.tests.testMode)
+{
+    . .\util.ps1
+    $P7Zip = $config.programs.p7zip
+}
 
 # HELPERS
 
@@ -613,38 +618,6 @@ Function Show-Table
     else
     { Write-Output (Format-Lookup-Table) | Format-Table -AutoSize }
     Write-Output ('Total Detected Cards: {0}' -f $n_detected_cards)
-}
-
-
-Function Expand-Tar
-{
-    param(
-        [string]$tarFile,
-        [string]$dest
-    )
-
-    if (! $P7Zip)
-    {
-        Expand-7Zip $tarFile $dest
-    }
-    else
-    { & $P7zip -bso0 -bsp0 x $tarFile -aoa }
-}
-
-
-Function Update-Tar
-{
-    param(
-        [string]$tarFile,
-        [string[]]$files
-    )
-
-    if (! $P7Zip)
-    {
-        Compress-7Zip $tarFIle -Append $(, $files)
-    }
-    else
-    { & $P7Zip -bso0 -bsp0 a $tarFile $(, $files) }
 }
 
 
