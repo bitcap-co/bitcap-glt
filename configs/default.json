@@ -1,0 +1,20 @@
+{
+    "debug": {
+        "debugMode": true,
+        "keepFiles": false,
+        "debugBIOS": false
+    },
+    "options": {
+        "filterMode": false,
+        "listView": false,
+        "input": {
+            "remoteIP": "192.168.",
+            "passwd": "",
+            "filterList": ""
+        },
+        "checkAll": true,
+        "checkBypassAM": true,
+        "checkGI": false,
+        "checkPutty": false
+    }
+}

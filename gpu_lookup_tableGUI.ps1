@@ -7,7 +7,7 @@ if (! $ConfigFile) { $ConfigFile = '.\instance.json' }
 $config = (Get-Content $ConfigFile) | ConvertFrom-Json
 
 $AM_API_URL = $config.params.awesomeHostURL
-if (! $config.debug.debugMode)
+if (-not $config.debug.debugMode -and -not $config.tests.testMode)
 {
     if (! $config.params.awesomeAPIKey) { Throw 'ERROR (Missing API Key: Provide the api key with -AwesomeAPIKey)' }
 }
@@ -16,7 +16,12 @@ $AM_API_KEY = $config.params.awesomeAPIKey
 # External Programs
 $putty = $config.programs.putty
 $plink = $config.programs.plink
-$P7Zip = $config.programs.p7zip
+
+if (-not $config.tests.testMode)
+{
+    . .\util.ps1
+    $P7Zip = $config.programs.p7zip
+}
 
 # HELPERS
 
@@ -111,7 +116,7 @@ Function Read-All-PCI-Busids
     if (
         $PIRQ_FOUND -or
         # PRIME Z390 exemption
-        (Get-Content .\mb_product_name.txt) -eq 'PRIME Z390-P'
+        $mb_product_name -eq 'PRIME Z390-P'
     )
     {
         $pdev = @()
@@ -141,7 +146,7 @@ Function Read-All-PCI-Busids
                 }
             }
         }
-        return , $pdev
+        return Write-Output -NoEnumerate $pdev
     }
     Write-Output -NoEnumerate $BUSID_REGEX.Matches((& Get-Content .\dmidecodet9.txt | Select-String -Pattern 'Bus Address')) | ForEach-Object { $_.Value.Trim(':') }
 }
@@ -155,7 +160,7 @@ Function Read-All-GPU-Busids
         $installed_gpu = (Get-Content .\lshwpci.txt | Select-String -Pattern "0000:$bus" -Context 0, (Find-GPU-Context-Offset ) | Out-String -Stream | Select-String -Pattern $GPU_BUSID_REGEX -AllMatches).Matches[-1].Value.Trim(':')
         $gdev += $installed_gpu
     }
-    return , $gdev
+    return Write-Output -NoEnumerate $gdev
 }
 
 
@@ -168,7 +173,7 @@ Function Get-GPU-Info
         $bus_info = $gpu_detect | Where-Object { $_.busid -eq $bus }
         $gpu_infos += '{0} {1} {2}' -f ($bus_info.subvendor, $bus_info.name, $bus_info.mem)
     }
-    return , $gpu_infos
+    return Write-Output -NoEnumerate $gpu_infos
 }
 
 
@@ -180,7 +185,7 @@ Function Read-Filtered-PCI-Busids
         $attached_pci = (Get-Content .\lshwpci.txt | Select-String -Pattern "0000:$bus" -Context (Find-GPU-Context-Offset), 0 | Out-String -Stream | Select-String -Pattern $BUSID_REGEX -AllMatches).Matches[0].Value.Trim(':')
         $pdev += $attached_pci
     }
-    return , $pdev
+    return Write-Output -NoEnumerate $pdev
 }
 
 
@@ -189,7 +194,7 @@ Function Read-PCI-Slot-Info
     param(
         [string]$query
     )
-    if ((Get-Content .\mb_product_name.txt) -eq 'PRIME Z390-P')
+    if ($mb_product_name -eq 'PRIME Z390-P')
     {
         $pci_busids = Write-Output -NoEnumerate $BUSID_REGEX.Matches((& Get-Content .\dmidecodet9.txt | Select-String -Pattern 'Bus Address')) | ForEach-Object { $_.Value.Trim(':') }
     }
@@ -206,7 +211,7 @@ Function Read-PCI-Slot-Info
             $pci_slot_info = (Get-Content .\dmidecodet9.txt -TotalCount ($empty_pci_slot_lines[$empty_index]) | Select-String -CaseSensitive -Pattern $query -Context 12, 0).Line | Select-Object -Last 1 | Show-Column -Column 1
             $empty_index++
         }
-        if ((Get-Content .\mb_product_name.txt) -eq 'TB360-BTC D+')
+        if ($mb_product_name -eq 'TB360-BTC D+')
         {
             if ($query -eq 'Designation')
             {
@@ -225,7 +230,7 @@ Function Read-PCI-Slot-Info
         else
         { $pci_query_info += $pci_slot_info }
     }
-    return , $pci_query_info
+    return Write-Output -NoEnumerate $pci_query_info
 }
 
 
@@ -233,6 +238,12 @@ Function Get-PCI-Handle-Count
 {
     $pci_handles = @((Get-Content .\dmidecodet9.txt | Select-String -Pattern 'Handle ' -AllMatches) | ForEach-Object { $_ | Show-Column -Column 1 })
     return $pci_handles.Count
+}
+
+
+Function Get-Baseboard-Product-Name
+{
+    return (Get-Content .\mb_product_name.txt)
 }
 
 
@@ -252,17 +263,16 @@ Function Read-Baseboard-BIOS
 }
 
 
-Function Read-Baseboard-Product-Name
+Function Update-Baseboard-Product-Name
 {
-    $dmi_baseboard = (Get-Content .\mb_product_name.txt)
     for ($idx = 0; $idx -lt $SUPPORTED_BASEBOARDS.Count; $idx++)
     {
-        if ($SUPPORTED_BASEBOARDS[$idx] -eq $dmi_baseboard)
+        if ($SUPPORTED_BASEBOARDS[$idx] -eq $mb_product_name)
         {
             return ( $idx + 1 )
         }
     }
-    return $dmi_baseboard
+    return $mb_product_name
 }
 
 
@@ -275,21 +285,21 @@ Function Search-PIRQ-Hard-Maps
     switch ($support_idx)
     {
         # BTC-S37, BTC-T37
-        { ($_ -eq 1) -or ($_ -eq 2) } { return , $x37_pirq_hard_map }
+        { ($_ -eq 1) -or ($_ -eq 2) } { return Write-Output -NoEnumerate $x37_pirq_hard_map }
         # ONDA B250
-        3 { return , $b250_pirq_hard_map }
+        3 { return Write-Output -NoEnumerate $b250_pirq_hard_map }
         # TB85
-        4 { return , $tb85_pirq_hard_map }
+        4 { return Write-Output -NoEnumerate $tb85_pirq_hard_map }
         #  12XTREME, X12ULTRA
-        { ($_ -eq 5) -or ($_ -eq 6) } { return , $octo12_hard_map }
+        { ($_ -eq 5) -or ($_ -eq 6) } { return Write-Output -NoEnumerate $octo12_hard_map }
         # B85 ULTRA
-        7 { return , $octo8_pirq_hard_map }
+        7 { return Write-Output -NoEnumerate $octo8_pirq_hard_map }
         # CRESCENTBAY
-        8 { return , $crescentbay_pirq_hard_map }
+        8 { return Write-Output -NoEnumerate $crescentbay_pirq_hard_map }
         # B75
-        9 { return , $b75_pirq_hard_map }
+        9 { return Write-Output -NoEnumerate $b75_pirq_hard_map }
         # skylake
-        10 { return , $skylake_pirq_hard_map }
+        10 { return Write-Output -NoEnumerate $skylake_pirq_hard_map }
     }
 }
 
@@ -303,7 +313,7 @@ Function Read-PIRQ-Device-Slot-Ids
     }
     $pirq_device_slot_ids = @()
     # OctoMiner 12x
-    if ($mb_product -eq 5 -or $mb_product -eq 6)
+    if ($mb_product_name -eq '12XTREME' -or $mb_product_name -eq 'X12ULTRA')
     {
         foreach ($bus in $devices)
         {
@@ -316,9 +326,9 @@ Function Read-PIRQ-Device-Slot-Ids
                 }
             }
         }
-        return , $pirq_device_slot_ids
+        return Write-Output -NoEnumerate $pirq_device_slot_ids
     }
-    $cp_of_pirq_map = $pirq_map
+    $cp_of_pirq_map = $pirq_map.Clone()
     foreach ($bus in $devices)
     {
         if ($bus -eq 'MISSING') { continue }
@@ -344,7 +354,7 @@ Function Read-PIRQ-Device-Slot-Ids
             $cp_of_pirq_map[0] = ''
         }
         # fix BTC-X37 showing slot 1 MISSING when slot 7 is MISSING
-        if ($mb_product -eq 1 -or $mb_product -eq 2)
+        if ($mb_product_name -eq 'BTC-T37' -or $mb_product_name -eq 'BTC-S37')
         {
             if ($pirq_slot_number -eq '33' -and $bus -eq '01:00.0')
             {
@@ -354,7 +364,7 @@ Function Read-PIRQ-Device-Slot-Ids
             }
         }
         # fix B75 slot 6 not having slot number
-        if ($mb_product -eq 9)
+        if ($mb_product_name -eq 'B75')
         {
             if ($null -eq $is_pirq_slot_number_match)
             {
@@ -374,7 +384,8 @@ Function Read-PIRQ-Device-Slot-Ids
         }
     }
     Remove-Variable devices
-    return , $pirq_device_slot_ids
+    Remove-Variable cp_of_pirq_map
+    return Write-Output -NoEnumerate $pirq_device_slot_ids
 }
 
 
@@ -394,7 +405,7 @@ Function Get-Missing-Slot-Ids
             $missing_slot_ids += $id
         }
     }
-    return , $missing_slot_ids
+    return Write-Output -NoEnumerate $missing_slot_ids
 }
 
 
@@ -405,7 +416,7 @@ Function Get-PIRQ-Device-Designations
     {
         $pirq_device_slot_designations += "PCIE $( $id + 1 )"
     }
-    return , $pirq_device_slot_designations
+    return Write-Output -NoEnumerate $pirq_device_slot_designations
 }
 
 
@@ -461,9 +472,9 @@ Function Get-GPU-Ids
             $gid++
         }
         else
-        { $gids[$idx] = '' }
+        { $gids[$idx] = '-' }
     }
-    return , $gids
+    return Write-Output -NoEnumerate $gids
 }
 
 
@@ -509,7 +520,7 @@ Function Test-GPU-Indexes
     }
     if ($validated.Length)
     {
-        return , $validated
+        return Write-Output -NoEnumerate $validated
     }
 }
 
@@ -610,38 +621,6 @@ Function Show-Table
 }
 
 
-Function Expand-Tar
-{
-    param(
-        [string]$tarFile,
-        [string]$dest
-    )
-
-    if (! $P7Zip)
-    {
-        Expand-7Zip $tarFile $dest
-    }
-    else
-    { & $P7zip -bso0 -bsp0 x $tarFile -aoa }
-}
-
-
-Function Update-Tar
-{
-    param(
-        [string]$tarFile,
-        [string[]]$files
-    )
-
-    if (! $P7Zip)
-    {
-        Compress-7Zip $tarFIle -Append $(, $files)
-    }
-    else
-    { & $P7Zip -bso0 -bsp0 a $tarFile $(, $files) }
-}
-
-
 Function Show-Column
 {
     param (
@@ -680,7 +659,7 @@ $remote_passwd = $config.options.input.passwd
 $search_list = ($config.options.input.filterList).Split(',')
 
 # Comment when debugging
-if (-not $config.debug.debugMode)
+if (-not $config.debug.debugMode -and -not $config.tests.testMode)
 {
     if (! $remote_passwd.Length)
     {
@@ -705,15 +684,17 @@ if (-not $config.debug.debugMode)
 
     Remove-Variable pl_passwd -ErrorAction SilentlyContinue
 }
-else
-{ $miner = (Get-Content .\miner.json) | ConvertFrom-Json }
+# else
+# { $miner = (Get-Content .\miner.json) | ConvertFrom-Json }
 
 $PIRQ_FOUND = $FALSE # Flag for $PIRQ table found
-$mb_product = (Read-Baseboard-Product-Name)
+$mb_product_name = (Get-Baseboard-Product-Name)
+Write-Debug "Baseboard: $mb_product_name"
+$mb_product = (Update-Baseboard-Product-Name)
 if (
     (Test-For-PIRQ-Table) -eq 0 -or
     # OctoMiner 12x exemption
-    $mb_product -eq 5 -or $mb_product -eq 6
+    $mb_product_name -eq '12XTREME' -or $mb_product_name -eq 'X12ULTRA'
 )
 {
     $PIRQ_FOUND = $TRUE
@@ -863,7 +844,10 @@ if ($config.options.checkGI)
 Remove-Item .\console_output.txt -ErrorAction SilentlyContinue
 
 Write-Verbose 'Generating GPU Lookup table...'
-Show-Table
+if (-not $config.tests.testMode)
+{
+    Show-Table
+}
 Write-Verbose 'Done!'
 
 Exit 0
