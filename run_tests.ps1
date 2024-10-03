@@ -132,6 +132,8 @@ foreach ($test_path in $test_dirs)
                 failed        = $f_tests
                 failed_output = $f_tests_results
             }
+            Remove-Item .\console_output.txt -ErrorAction SilentlyContinue
+            Remove-Item .\dmidecodebios.txt -ErrorAction SilentlyContinue
         }
     }
 }
