@@ -1,23 +1,12 @@
-Function Expand-Tar2
+. .\util.ps1
+if (Test-Path -Path '.\instance.json')
 {
-    param(
-        [string]$tarFile,
-        [string]$dest
-        )
-
-        & $P7zip2 -bso0 -bsp0 x $tarFile -aoa
-
-    }
-
-
-Function Update-Tar2
+    $instance = (Get-Content '.\instance.json') | ConvertFrom-Json
+    $P7Zip = $instance.programs.p7zip
+} else
 {
-    param(
-        [string]$tarFile,
-        [string[]]$files
-    )
-
-    & $P7Zip2 -bso0 -bsp0 a $tarFile $(, $files)
+    $P7ZipLocations = 'C:\Program Files\7-Zip\', 'C:\Program Files (x86)\7-Zip\'
+    $P7Zip = (Get-ChildItem -Path (& Get-Program $P7ZipLocations) -File 7z.exe).FullName
 }
 
 
@@ -37,8 +26,6 @@ Function Test-If-Empty
 }
 
 
-$P7Zip2 = (Get-ChildItem -Path 'C:\Program Files\7-Zip\' -File 7z.exe).FullName
-
 $test_dirs = '.\tests\Amd', '.\tests\Baseboards', '.\tests\Nvidia'
 foreach ($test_path in $test_dirs)
 {
@@ -47,10 +34,10 @@ foreach ($test_path in $test_dirs)
         $test_path = Resolve-Path $test_path
         foreach ($test in (Get-ChildItem -Path $test_path -Recurse -Filter '*.tar.bz2').FullName)
         {
-            Expand-Tar2 $test .
+            Expand-Tar $test .
             $archive_name = $test.Split('\')[-1]
             $tar_name = $archive_name.Replace('.bz2', '')
-            Expand-Tar2 $tar_name .
+            Expand-Tar $tar_name .
             Write-Host "Generating $($test.Replace($PWD, ''))..."
             . .\gpu_lookup_tableGUI.ps1 -ConfigFile ".\configs\default.json" -Verbose
             if (-not (Test-Path .\expected.ps1))
@@ -84,8 +71,8 @@ $expected_total_detected_cards = {12}
                              (Test-If-Empty $gi_indicators),
                              $n_detected_cards | Out-File '.\expected.ps1'
             }
-            Update-Tar2 -tarFile $tar_name -files .\expected.ps1
-            Update-Tar2 -tarFile $test -files ".\$tar_name"
+            Update-Tar -tarFile $tar_name -files .\expected.ps1
+            Update-Tar -tarFile $test -files ".\$tar_name"
             Remove-Item ".\$tar_name"
             Remove-Item .\expected.ps1
             Remove-Item .\console_output.txt -ErrorAction SilentlyContinue

@@ -1,15 +1,13 @@
-Function Expand-Tar2
+. .\util.ps1
+if (Test-Path -Path '.\instance.json')
 {
-    param(
-        [string]$tarFile,
-        [string]$dest
-    )
-
-    & $P7zip2 -bso0 -bsp0 x $tarFile -aoa
-
+    $instance = (Get-Content '.\instance.json') | ConvertFrom-Json
+    $P7Zip = $instance.programs.p7zip
+} else
+{
+    $P7ZipLocations = 'C:\Program Files\7-Zip\', 'C:\Program Files (x86)\7-Zip\'
+    $P7Zip = (Get-ChildItem -Path (& Get-Program $P7ZipLocations) -File 7z.exe).FullName
 }
-
-$P7Zip2 = (Get-ChildItem -Path 'C:\Program Files\7-Zip\' -File 7z.exe).FullName
 
 
 Function Test-Expected-Value
@@ -67,6 +65,7 @@ Function Test-Expected-Value
     }
 }
 
+
 $test_results = @()
 $test_dirs = '.\tests\Amd', '.\tests\Baseboards', '.\tests\Nvidia'
 foreach ($test_path in $test_dirs)
@@ -76,10 +75,10 @@ foreach ($test_path in $test_dirs)
         $test_path = Resolve-Path $test_path
         foreach ($test in (Get-ChildItem -Path $test_path -Recurse -Filter '*.tar.bz2').FullName)
         {
-            Expand-Tar2 $test .
+            Expand-Tar $test .
             $archive_name = $test.Split('\')[-1]
             $tar_name = $archive_name.Replace('.bz2', '')
-            Expand-Tar2 $tar_name .
+            Expand-Tar $tar_name .
             Remove-Item $tar_name
             $n_tests_passed = 0
             $tests = @()
