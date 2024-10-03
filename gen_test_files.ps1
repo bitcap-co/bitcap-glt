@@ -39,7 +39,7 @@ foreach ($test_path in $test_dirs)
             $tar_name = $archive_name.Replace('.bz2', '')
             Expand-Tar $tar_name .
             Write-Host "Generating $($test.Replace($PWD, ''))..."
-            . .\gpu_lookup_tableGUI.ps1 -ConfigFile ".\configs\default.json" -Verbose
+            . .\gpu_lookup_tableGUI.ps1 -ConfigFile ".\configs\tests.json"
             if (-not (Test-Path .\expected.ps1))
             {
                 $expected = @'
