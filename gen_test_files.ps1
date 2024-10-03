@@ -38,7 +38,7 @@ foreach ($test_path in $test_dirs)
             $archive_name = $test.Split('\')[-1]
             $tar_name = $archive_name.Replace('.bz2', '')
             Expand-Tar $tar_name .
-            Write-Host "Generating $($test.Replace($PWD, ''))..."
+            Write-Host "Generating test file for $($test.Replace($PWD, ''))..."
             . .\gpu_lookup_tableGUI.ps1 -ConfigFile ".\configs\tests.json"
             if (-not (Test-Path .\expected.ps1))
             {
@@ -71,10 +71,12 @@ $expected_total_detected_cards = {12}
                              (Test-If-Empty $gi_indicators),
                              $n_detected_cards | Out-File '.\expected.ps1'
             }
+            Write-Host "Wrote expected.ps1."
             Update-Tar -tarFile $tar_name -files .\expected.ps1
             Update-Tar -tarFile $test -files ".\$tar_name"
             Remove-Item ".\$tar_name"
             Remove-Item .\expected.ps1
+            Write-Host "Successfully updated archive with test file."
             Remove-Item .\console_output.txt -ErrorAction SilentlyContinue
             Remove-Item .\dmidecodebios.txt -ErrorAction SilentlyContinue
         }
