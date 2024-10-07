@@ -10,21 +10,6 @@ if (Test-Path -Path '.\instance.json')
 }
 
 
-Function Test-If-Empty
-{
-    param(
-        $arr
-    )
-
-    if ($arr -and $arr[0] -is [int]) {
-        return ('@(' + ($arr -join ", ") + ')')
-    } elseif ($arr) {
-        return ('@("' + ($arr -join '", "') + '")')
-    } else {
-        return '$null'
-    }
-}
-
 
 $test_dirs = '.\tests\Amd', '.\tests\Baseboards', '.\tests\Nvidia'
 foreach ($test_path in $test_dirs)
