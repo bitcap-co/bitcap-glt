@@ -16,6 +16,7 @@
             <MenuItem Header="Debug">
                 <MenuItem Name="DebugToolCheckDebug" Header="Enable Debug Mode" ToolTip="(Debugging) Shows debugging messages" IsCheckable="True" />
                 <MenuItem Name="DebugToolCheckKeep" Header="Keep Remote Files" ToolTip="(Debugging) Keeps the remote data on the host." IsCheckable="True" IsChecked="True" />
+                <MenuItem Name="DebugToolCheckGenExpected" Header="Generate Expected File" ToolTip="(Debugging) Generate expected.ps1 for current remote host for test upload." IsCheckable="True" IsChecked="False" />
                 <MenuItem Name="DebugToolCheckBIOS" Header="Get BIOS Information" ToolTip="(Debugging) Outputs some useful BIOS information to the table." IsCheckable="True" />
             </MenuItem>
             <MenuItem Header="Options">

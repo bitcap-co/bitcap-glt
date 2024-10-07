@@ -346,6 +346,7 @@ $AcceptButton.add_click(
             debug    = [PSCustomObject]@{
                 debugMode = $DebugToolCheckDebug.IsChecked
                 keepFiles = $DebugToolCheckKeep.IsChecked
+                genExpected = $DebugToolCheckGenExpected.IsChecked
                 debugBIOS = $DebugToolCheckBIOS.IsChecked
             }
             # options
@@ -370,7 +371,7 @@ $AcceptButton.add_click(
         # $TextRemoteIP.Text = '192.168.'
         $PasswdBox.Password = ''
         $TextFilterList.Text = ''
-        $CheckBoxElements = @($DebugToolCheckDebug, $DebugToolCheckKeep, $DebugToolCheckBIOS, $OptToolCheckFilter, $OptToolCheckLView)
+        $CheckBoxElements = @($DebugToolCheckDebug, $DebugToolCheckKeep, $DebugToolCheckGenExpected, $DebugToolCheckBIOS, $OptToolCheckFilter, $OptToolCheckLView)
         $CheckBoxElements | ForEach-Object {
             if ($null -ne $_)
             {
