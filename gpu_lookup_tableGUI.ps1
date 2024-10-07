@@ -19,7 +19,7 @@ $plink = $config.programs.plink
 
 if (-not $config.tests.testMode)
 {
-    . .\util.ps1
+    . .\p7zip_util.ps1
     $P7Zip = $config.programs.p7zip
 }
 
