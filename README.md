@@ -55,6 +55,9 @@ What can be done: If the miner is on the network but AM is not able to see it, t
 #### ‘$PIRQ Table not found’ Warning
 The script is just letting the user know that it wasn’t able to find the preferred table of information. The script will continue but uses the generally less accurate DMI table to figure out the order of PCIE slots. As the following warning says, this may lead to inaccurate and incomplete output from the script.
 
+## HiveOS Integration
+This repo also provides a HiveOS package to integrate the core GLT functionality directly into `motd` as well as a standalone `gpu_lookup_table` script to produce a "one to one" map of the installed baseboard. Check out the release [here](https://github.com/bitcap-co/bitcap-glt/releases/tag/v0.0.4-hiveos) to find out more information.
+
 
 ## Reporting Issues/Contributing
 See [CONTRIBUTING](./.github/CONTRIBUTING.md) to see how to report issues or contribute pull requests.
