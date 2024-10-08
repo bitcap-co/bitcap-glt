@@ -1,0 +1,5 @@
+#!/bin/sh
+
+version="$(dpkg -s hive | grep '^Version: ' | sed 's/Version: //')"
+major="$(echo $version | cut -d"-" -f1)"
+rev=$(echo $version | cut -d"-" -f2)

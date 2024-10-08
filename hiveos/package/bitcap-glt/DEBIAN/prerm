@@ -1,0 +1,10 @@
+#!/bin/sh
+. "${0%/*}/bitcap-shell.version"
+
+cd /hive/bin
+if [ $rev -ge 219 ]; then
+    patch -Rp3 -f < ./glt/patches/hive0.6-219+-motd-glt.patch
+fi
+if [ $rev -ge 227 ]; then
+    patch -Rp3 -f < ./glt/patches/hive0.6-227+-motd-fix-gpu-index-colors.patch
+fi

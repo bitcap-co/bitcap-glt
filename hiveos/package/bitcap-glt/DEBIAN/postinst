@@ -1,0 +1,20 @@
+#!/bin/sh
+. "${0%/*}/bitcap-shell.version"
+
+if [ -n $version ]; then
+    # apply pre patch if hive version >=0.6-227
+    if [ $rev -ge 227 ]; then
+        cd /hive/bin
+        patch -p3 < ./glt/patches/hive0.6-227+-motd-fix-gpu-index-colors.patch
+    fi
+    # apply patch if hive version >=0.6-219
+    if [ $rev -ge 219 ]; then
+        cd /hive/bin
+        patch -p3 < ./glt/patches/hive0.6-219+-motd-glt.patch
+    else
+        echo "Failed to patch motd: Hive Version too old."
+    fi
+else
+    echo "Failed to find hive package version."
+    exit 1
+fi

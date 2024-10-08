@@ -1,0 +1,13 @@
+diff --git a/shell/package/motd b/shell/package/motd
+index f90a0ac..c3777cf 100644
+--- a/shell/package/motd
++++ b/shell/package/motd
+@@ -482,7 +482,7 @@ gpu_info() {
+ 		else
+ 			vbios="$SEP${GRAY}$vbios"
+ 		fi
+-		output=`printf "%b%2s%b" "${COLOR[idx]}" "${GPU_INDEX[idx]}" "$NOCOLOR ${BUSID[idx]} ${COLOR[idx]}${NAME[idx]}$NOCOLOR${RAM[idx]}$vbios$NOCOLOR"`
++		output=`printf "%b%2s%b" "$BBLUE" "${GPU_INDEX[idx]}" "$NOCOLOR ${BUSID[idx]} ${COLOR[idx]}${NAME[idx]}$NOCOLOR${RAM[idx]}$vbios$NOCOLOR"`
+ 		result+=`color_printf "$maxlen" "$output"`
+ 
+ 		[[ "${busids[idx]}" != "${BUSID[idx]}" || ${powers[idx]} -eq 0 ]] && result+=$'\n' && continue

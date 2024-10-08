@@ -1,0 +1,67 @@
+diff --git a/shell/package/motd b/shell/package/motd
+index 9def4fe..b96d3fd 100644
+--- a/shell/package/motd
++++ b/shell/package/motd
+@@ -1,6 +1,8 @@
+ #!/usr/bin/env bash
+ #ln -s /hive/bin/motd /etc/update-motd.d/00-my-motd
+ source colors
++source "${0%/*}/glt/include_pirq_util"
++source "${0%/*}/glt/include_glt_motd"
+
+ set -o pipefail
+
+@@ -35,6 +37,19 @@ echo ""
+ # hook Ctrl+C
+ trap "echo $NOCOLOR; exit 0" SIGINT
+
++## glt motd hook
++if check_for_pirq_table; then  # $PIRQ check
++    determine_pirq_hard_map
++else
++    # Supported "PIRQ-Like" maps; PIRQ Table not available
++    get_mb_product_name
++    if [[ $? -ne 0 ]]; then
++        determine_pirq_hard_map
++    fi
++fi
++
++## end glt
++
+ pretty_uptime() {
+ 	local t=`awk '{print int($1)}' /proc/uptime`
+ 	local d=$((t/60/60/24))
+@@ -482,8 +497,13 @@ gpu_info() {
+ 		else
+ 			vbios="$SEP${GRAY}$vbios"
+ 		fi
+-		output=`printf "%b%2s%b" "$BBLUE" "${GPU_INDEX[idx]}" "$NOCOLOR ${BUSID[idx]} ${COLOR[idx]}${NAME[idx]}$NOCOLOR${RAM[idx]}$vbios$NOCOLOR"`
+-		result+=`color_printf "$maxlen" "$output"`
++
++        dev=${BUSID[idx]}
++        if [[ "${BRAND[idx]}" == "amd" ]]; then
++            dev=$(get_amd_pirq_busid ${BUSID[idx]})
++        fi
++        output=`printf "%b%2s%b" "$BBLUE" "${GPU_INDEX[idx]}" "$NOCOLOR ${BUSID[idx]} $(get_pirq_device_slot $dev) ${COLOR[idx]}${NAME[idx]}$NOCOLOR${RAM[idx]}$vbios$NOCOLOR"`
++        result+=`color_printf "$maxlen" "$output"`
+
+ 		[[ "${busids[idx]}" != "${BUSID[idx]}" || ${powers[idx]} -eq 0 ]] && result+=$'\n' && continue
+
+@@ -556,6 +576,17 @@ gpu_compact() {
+
+ 	while true
+ 	do
++        for((idx=first_idx; idx<last_idx; idx++)); do
++            local color=$WHITE
++            dev=${busids[idx]}
++            if [[ ${brands[idx]} == "amd" ]]; then
++                dev=$(get_amd_pirq_busid ${busids[idx]})
++            fi
++            local location="$(get_pirq_device_slot $dev)"
++            result+=`printf "%b%${step}s%b" "$color" "${location// /}" "$NOCOLOR"`
++        done
++        result+=$'\n'
++
+ 		for((idx=first_idx; idx<last_idx; idx++)); do
+ 			local color=$YELLOW
+ 			if [[ ${brands[idx]} == "nvidia" ]]; then

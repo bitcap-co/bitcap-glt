@@ -1,0 +1,50 @@
+#!/bin/bash
+##
+## include_glt_motd -- includes for motd
+
+
+function get_pirq_device_slot () {
+    local C_GET_PIRQ_PCI_SLOT_NUMBER
+    local pci_slot
+    pci_slot=""
+
+    if [[ support_idx -eq 9 || support_idx -eq 10 ]]; then
+        for (( idx=0; idx < ${#pirq_map[@]}; idx++ )); do
+            if [[ "${1:0:2}" == "${pirq_map[idx]}" ]]; then
+                pci_slot="PCIE $((idx+1))"
+                break
+            fi
+        done
+    fi
+
+    C_GET_PIRQ_PCI_SLOT_NUMBER=$(echo "$C_BIOS_PIRQ_TABLE" | grep "$(echo "$1" | cut -d"." -f1)" | grep -Poe 'slot(?: number | )\K([0-9]{1,})')
+    if [[ support_idx -eq 1 || support_idx -eq 2 ]]; then
+        ## little bit of headache to get around multiple "16" entries
+        if [[ "$1" == "01:00.0" && "$C_GET_PIRQ_PCI_SLOT_NUMBER" == "16" ]]; then
+            pci_slot="PCIE 1"
+        elif [[ "$C_GET_PIRQ_PCI_SLOT_NUMBER" == "16" && "$1" != "01:00.0" ]]; then
+            pci_slot="PCIE 4"
+        fi
+        ## fix x37 showing slot 1 MISSING when slot 7 is MISSING
+        if [[ "$C_GET_PIRQ_PCI_SLOT_NUMBER" == 33 && "$1" == "01:00.0" ]]; then
+            pci_slot="PCIE 1"
+        fi
+    fi
+    if [[ support_idx -eq 7 ]]; then  #b75
+        ## fix b75 slot 6 not having slot number
+        if [[ -z "$C_GET_PIRQ_PCI_SLOT_NUMBER" && "$1" != "00:02.0" ]]; then
+            pci_slot="PCIE 6"
+        fi
+        ##
+    fi
+    if [[ -z $pci_slot ]]; then
+        for (( idx=0; idx < ${#pirq_map[@]}; idx++ )); do
+            if [[ ${pirq_map[$idx]} == "$C_GET_PIRQ_PCI_SLOT_NUMBER" ]]; then
+                pci_slot="PCIE $((idx+1))"
+                break
+            fi
+        done
+    fi
+    echo "$pci_slot"
+    unset C_GET_PIRQ_PCI_SLOT_NUMBER
+}

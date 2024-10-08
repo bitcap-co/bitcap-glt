@@ -1,0 +1,390 @@
+#!/bin/bash
+##
+## gpu_lookup_table -- hiveos integrated version of glt
+## author: Matthew Wertman
+## date: 2/29/24
+
+source colors
+source "${0%/*}/glt/include_pirq_util"
+
+# FLAGS
+PIRQ=0    # Added support for $PIR Table
+COLUMN=""
+VERBOSE=""
+
+
+function get_gpu_info {
+    [[ ! -f $GPU_DETECT_JSON ]] && return 1
+    local gpu_detect_json="$(< $GPU_DETECT_JSON)"
+
+    BUSID=()
+
+    local idx=-1
+    while IFS=";" read busid brand vendor mem vbios name; do
+        ((idx++))
+        BUSID[idx]="$busid"
+        BRAND[idx]="$brand"
+        VENDOR[idx]="$vendor"
+        RAM[idx]="${mem:+ }$mem"
+        VBIOS[idx]="$vbios"
+        NAME[idx]="$name"
+
+    done < <( echo "$gpu_detect_json" | jq -r -c '.[] | (.busid+";"+.brand+";"+.vendor+";"+.mem+";"+.vbios+";"+.name)' 2>/dev/null )
+
+    [[ ${#BUSID[@]} -eq 0 ]] && return 1
+    return 0
+}
+
+
+## BEGIN PIRQ FUNCTIONS ##
+declare -A pirq_device_order
+
+
+function get_pirq_device_order {
+    local dev
+    local C_GET_PIRQ_PCI_SLOT_NUMBER
+    local cp_of_pirq=(${pirq_map[@]})
+
+    local idx
+    local color
+
+    if [[ support_idx -eq 9 || support_idx -eq 10 ]]; then  # OctoMiner 12x
+        for bus in "${BUSID[@]}"; do
+            for (( idx=0; idx<${#pirq_map[@]}; idx++ )); do
+                color=$GREEN
+                if [[ "$BRAND[idx]" == "amd" ]]; then
+                    color=$RED
+                fi
+                if [[ "${bus:0:2}" == "${pirq_map[idx]}" ]]; then
+                    pirq_device_order[$((idx+1))]="$color$bus$NOCOLOR"
+                    break
+                fi
+            done
+        done
+        [[ ${#pirq_device_order[@]} -eq 0 ]] && return 1
+        return 0
+    fi
+
+    for ((idx=1; idx<${#BUSID[@]};idx++)); do
+        color=$GREEN
+        dev=${BUSID[idx]}
+        if [[ "${BRAND[idx]}" == "amd" ]]; then
+            color=$RED
+            dev=$(get_amd_pirq_busid ${BUSID[idx]})
+        fi
+        C_GET_PIRQ_PCI_SLOT_NUMBER=$(echo "$C_BIOS_PIRQ_TABLE" | grep "$(echo "$dev" | cut -d"." -f1)" | grep -Poe 'slot(?: number | )\K([0-9]{1,})')
+        if [[ support_idx -eq 1 || support_idx -eq 2 ]]; then  #x37
+            ## little bit of headache to get around multiple "16" entries with x37 baseboard
+            if [[ "$dev" == "01:00.0" && "$C_GET_PIRQ_PCI_SLOT_NUMBER" == "16" ]]; then
+                pirq_device_order[1]="$color${BUSID[idx]}$NOCOLOR"
+                cp_of_pirq[0]=""
+                continue
+            elif [[ "$C_GET_PIRQ_PCI_SLOT_NUMBER" == "16" && "$dev" != "01:00.0" ]]; then
+                cp_of_pirq[0]=""
+            fi
+            ##
+            ## fix x37 showing slot 1 MISSING when slot 7 is MISSING
+            if [[ "$C_GET_PIRQ_PCI_SLOT_NUMBER" == "33" && "$dev" == "01:00.0" ]]; then
+                pirq_device_order[1]="$color${BUSID[idx]}$NOCOLOR"
+                cp_of_pirq[0]=""
+                continue
+            fi
+            ##
+        fi
+        if [[ support_idx -eq 7 ]]; then  #b75
+            ## fix b75 slot 6 not having slot number
+            if [[ -z "$C_GET_PIRQ_PCI_SLOT_NUMBER" ]]; then
+                pirq_device_order[6]="$color${BUSID[idx]}$NOCOLOR"
+                cp_of_pirq[5]=""
+                continue
+            fi
+            ##
+        fi
+        local idy
+        for (( idy=0; idy<${#pirq_map[@]}; idy++ )); do
+            if [[ ${cp_of_pirq[$idy]} == "$C_GET_PIRQ_PCI_SLOT_NUMBER" ]]; then
+                pirq_device_order[$((idy+1))]="$color${BUSID[idx]}$NOCOLOR"
+                cp_of_pirq[idy]=""
+                break
+            fi
+        done
+    done
+    unset C_GET_PIRQ_PCI_SLOT_NUMBER
+    unset cp_of_pirq
+    [[ ${#pirq_device_order[@]} -eq 0 ]] && return 1
+    return 0
+}
+
+
+function find_missing_pirq_slot_ids {
+    local idx
+    local color=$PURPLE
+    local text="MISSING"
+    for (( idx=0; idx < ${#pirq_map[@]}; idx++ )); do
+        if [[ ! -v pirq_device_order[$((idx+1))] ]]; then
+            pirq_device_order[$((idx+1))]="$color$text$NOCOLOR"
+        fi
+    done
+}
+
+
+function get_pirq_device_designations {
+    pci_designations=()
+    for i in "${nslot_sorted[@]}"; do
+        pci_designations+=("PCIE$i")
+    done
+    return ${#pci_designations[@]}
+}
+
+
+## END PIRQ FUNCTIONS ##
+
+
+# query_pci_slot_info
+# looks at the DMI Table for information on the system's pci slots.
+# can specify what information in the table by supplying param
+# params:
+    # $1 - Filter the PCI Table with query
+         # valid querys are: "Type", "Length", "Designation", "ID",
+         #                   "Bus Address", and "Current Usage"
+function query_pci_slot_info () {
+    local C_DMI_PCI_INFO
+    local C_GET_EMPTY_PCI_SLOT_LINES
+    local QUERY_MULTI_WORD
+    local empty_index
+    local idx
+    QUERY_MULTI_WORD=0
+    empty_index=0
+    pci_query_info=()
+
+    C_GET_EMPTY_PCI_SLOT_LINES=($(echo "$C_DMI_PCI_TABLE" | grep -n "0000:00:00.0" | grep -oE '^[0-9]{2,}'))
+
+    # support for "Bus Address" and "Current Usage" queries
+    if [[ $(echo "$1" | wc -w) -eq 2 ]]; then
+        QUERY_MULTI_WORD=1
+    fi
+    for (( idx=0; idx < ${#pci_busids[@]}; idx++ )); do
+        C_DMI_PCI_INFO=$(echo "$C_DMI_PCI_TABLE" | grep "${pci_busids[idx]}" -B 12 | grep "$1" | awk "$(print_column 2)")
+        if [[ "${pci_busids[idx]}" == "00:00.0" ]]; then
+            C_DMI_PCI_INFO=$(echo "$C_DMI_PCI_TABLE" | cat -n - | grep "${C_GET_EMPTY_PCI_SLOT_LINES[empty_index]}" -B 12 | grep "$1" | awk "$(print_column 3)")
+            empty_index=$(( empty_index + 1 ))
+        fi
+        if [[ "$C_DMI_BASEBOARD_PRODUCT" == "TB360-BTC D+" ]]; then
+            if [[ $1 == "Designation" ]]; then
+                if [[ idx -eq 0 ]]; then
+                    pci_query_info+=("$C_DMI_PCI_INFO")
+                else
+                    pci_query_info+=("PEX16_$(("${C_DMI_PCI_INFO:(-1)}" + 1))")
+                fi
+            else
+                pci_query_info+=("$C_DMI_PCI_INFO")
+            fi
+        else
+            pci_query_info+=("$C_DMI_PCI_INFO")
+        fi
+    done
+    unset C_DMI_PCI_INFO
+    return ${#pci_query_info[@]}
+}
+
+
+function build_column_table () {
+    data_out=""
+    local idx
+    for (( idx=0; idx < $1; idx++ )); do
+        data_out="$data_out$((idx+1))   |"
+        data_out="$data_out${pci_designations[idx]}   |"
+        data_out="$data_out${gpu_busids[idx]}   |"
+        data_out="$data_out\n"
+    done
+}
+
+
+function build_table_data_row () {
+    local row_header
+    local data_arr
+    row_header="$1"
+    shift
+    data_arr=("$@")
+    data_out="$data_out$row_header|"
+    for el in "${data_arr[@]}"; do
+        data_out="$data_out${el}|"
+    done
+    data_out="$data_out\n"
+}
+
+
+function print_column () {
+    local col_num=$1
+    local start_col=$(( $1 + 1 ))
+    local end_col=$(( start_col + 1 ))
+    if [[ QUERY_MULTI_WORD -eq 1 ]]; then
+        echo "{print \$$start_col \$$end_col}"
+    else
+        echo "{print \$$col_num}"
+    fi
+}
+
+
+function print_man
+{
+cat << EOF
+NAME
+    gpu_lookup_table -- maps installed GPU devices to their PCI(E) slot addresses
+                        and their physical locations.
+
+DESCRIPTION
+    gpu_lookup_table is a small utility script allowing the user to map all GPU
+    devices to their corresponding PCIE slot addresses/locations.
+
+SUPPORTED HARDWARE
+    The below hardware are split into two sections: \$PIRQ supported & DMI supported.
+    \$PIRQ and DMI are just two places in ROM that the script tries to read to figure out
+    where the PCI(E) devices are, \$PIRQ being preferred first then falling back to DMI.
+    There will be a warning when using DMI because generally it is incorrect or incomplete.
+
+    \$PIRQ Supported baseboards:
+        - 'ONDA B250 BTC V1.05' (12x)
+        - 'B85 ULTRA' (OctoMiner 8x)'
+        - '12XTREME/X12ULTRA' (OctoMiner 12x)
+        - 'B75' (8x)
+        - 'CRESCENTBAY' (8x)
+        - 'BTC-S37/BTC-T37' (8x)
+        - 'skylake' (8x)
+        - 'TB85' (6x atx)
+
+    DMI Supported baseboards:
+        - 'TB360-BTC D+'
+
+
+    Known working GPUs
+        - Ellesmere (RX 400 Series)
+        - Polaris (RX 500 Series)
+        - Navi (RX 5000 Series, RX 6000 Series, BC 160)
+        - Vega
+        - Turing (1660, 1660 Super, 20 Series)
+        - Pascal (10 Series)
+        - Ampere (30 Series, A2000)
+
+FLAGS
+    -c, --column
+            Represent the outputted table in a column-like compact table. Better for copying
+            and pasting/sharing.
+    -h, --help
+            Shows this output and exits.
+    -v, --verbose
+            Increases the verbosity of generated output. Used for debugging!
+EOF
+}
+
+
+function print_usage {
+    echo "Usage: $(basename $0) [--column|-c] [--help|-h] [--verbose|-v]," >&2
+    echo "      flags surrounded in '[]' are optional." >&2
+}
+
+
+function write_verbose () {
+    if [[ $VERBOSE == "-v" ]]; then
+        echo -e "\e[33m$1\e[0m"
+    fi
+}
+
+
+for arg in "$@"; do
+    shift
+    case "$arg" in
+         "--column" ) set -- "$@" "-c"    ;;
+           "--help" ) set -- "$@" "-h"    ;;
+        "--verbose" ) set -- "$@" "-v"    ;;
+                  * ) set -- "$@" "$arg"
+    esac
+done
+
+OPTIND=1
+while getopts "chv" opt; do
+    case "$opt" in
+        "c") COLUMN="N    |SLOT     |BUSID" ;;
+        "h") print_man; exit 0 ;;
+        "v") VERBOSE="-v" ;;
+        \? ) echo "$0: ERROR (Invalid parameter flag)" >&2; print_usage >&2; exit 1 ;;
+         : ) echo "$0: ERROR ($OPTARG requires an argument)" >&2; exit 1 ;;
+    esac
+done
+shift $(( OPTIND - 1 ))
+
+
+function gpu_lookup {
+    write_verbose "Found $C_DMI_BASEBOARD_PRODUCT"
+
+    if check_for_pirq_table; then
+        PIRQ=1
+        determine_pirq_hard_map
+        write_verbose "Using the BIOS PIRQ Table: ${pirq_map[*]}"
+    else
+        # Supported "PIRQ-Like" maps; PIRQ Table not available
+        get_mb_product_name
+        if [[ $? -ne 0 ]]; then
+            PIRQ=1
+            determine_pirq_hard_map
+            write_verbose "Using custom hard map: ${pirq_map[*]}"
+        else
+            echo -e "\e[33m\$PIRQ Table not found. Continuing...\nOutput may be inaccurate, or flat-out incomplete\e[0m"
+        fi
+    fi
+
+    write_verbose "Getting installed GPU info..."
+    get_gpu_info
+    gpu_busids=(${BUSID[@]})
+    unset gpu_busids[0]
+    write_verbose "Installed GPU Busids: ${gpu_busids[*]}"
+
+    R_TOTAL_GPU_DEVICES=${#gpu_busids[@]}
+    write_verbose "Received $R_TOTAL_GPU_DEVICES GPU devices."
+
+    write_verbose "Generating GPU lookup table..."
+    data_out=""
+    if [[ PIRQ -eq 1 ]]; then
+        get_pirq_device_order
+        find_missing_pirq_slot_ids
+        nslot_sorted=($(for x in ${!pirq_device_order[@]}; do echo $x; done | sort -n))
+        gpu_busids=($(for key in "${nslot_sorted[@]}"; do
+            echo "${pirq_device_order[$key]}"
+        done))
+        get_pirq_device_designations
+        if [[ -n $COLUMN ]]; then
+            build_column_table ${#pirq_device_order[@]}
+        else
+            build_table_data_row " SLOT N     : " "${nslot_sorted[@]}"
+            build_table_data_row " PCI LOCATOR: " "${pci_designations[@]}"
+            build_table_data_row " GPU BUS ID : " "${gpu_busids[@]}"
+        fi
+    else
+        query_pci_slot_info "Designation"
+        pci_designations=(${pci_query_info[@]})
+        query_pci_slot_info "ID"
+        if [[ -n $COLUMN ]]; then
+            build_column_table ${#pci_query_info[@]}
+        else
+            build_table_data_row " SLOT N     : " "${pci_query_info[@]}"
+            query_pci_slot_info "Designation"
+            build_table_data_row " PCI LOCATOR: " "${pci_designations[@]}"
+            build_table_data_row " GPU BUS ID : " "${gpu_busids[@]}"
+        fi
+    fi
+    echo "GPU Lookup Table"
+    echo
+    echo "BASEBOARD: $C_DMI_BASEBOARD_PRODUCT"
+    echo "#####################################"
+    # print data table
+    if [[ -n $COLUMN ]]; then
+        echo -e "$COLUMN" | awk -F'|' -vOFS='\t' 'NF > 0 { $1 = $1 } 1'
+    fi
+    echo -e "$data_out" | awk -F'|' -vOFS='\t' 'NF > 0 { $1 = $1 } 1'
+
+    echo "Total Detected Cards: $R_TOTAL_GPU_DEVICES"
+
+    write_verbose "Done! Exiting..."
+}
+gpu_lookup
+exit 0
