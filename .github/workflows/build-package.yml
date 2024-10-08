@@ -1,0 +1,23 @@
+name: Build hiveos package
+on:
+  push:
+    tags:
+      - 'v*.*.*-hiveos'
+
+jobs:
+  Build-GLT-hiveos:
+    name: Build GLT hiveos package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build .deb package with dpkg-deb
+        shell: bash
+        run: |
+          cd hiveos/package
+          dpkg-deb --build --root-owner-group bitcap-glt "bitcap-glt_${{github.ref_name}}_all.deb"
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "bitcap-glt_${{github.ref_name}}_all.deb"
+          draft: true
