@@ -49,3 +49,28 @@ For the list of currently supported baseboards, check the [README](../README.md#
 ### Testing/Debugging
 To ensure that the output of the script is expected, run against the data archive with Debug -> 'Enable Debug Mode'.
 Simply extract the data files from the archive in the source directory and click 'Go!' within the script.
+
+To run the script against the test archives in `tests` directory, simply run `.\run_tests.ps1` to ensure all tests pass related to data retrieval.
+
+### Contributing new test archives and `expected.ps1`
+The provided test archives in the repo include a `expected.ps1` that can be generated to ensure the output of the scipt is working as expected.
+If want to contribute a new test, one must generate the expected script using the Debug -> 'Generate Expected File' to update the data archive with the expected values.
+
+The `expected.ps1` provides the expected values for the the variables created by GLT on runtime. Looking at `tests\Amd\BC-160.tar.bz2` for example:
+```poweshell
+># contents of expected.ps1
+#\tests\Amd\BC-160\BC-160.tar.bz2
+$expected_mb_product_name = "TB360-BTC D+"
+$expected_PIRQ_FOUND = $False
+$expected_pirq_map = $null
+$expected_pci_busids = @("00:00.0", "0e:00.0", "11:00.0", "14:00.0", "01:00.0", "04:00.0", "07:00.0", "0a:00.0")
+$expected_pci_missing_devices = 0
+$expected_pci_info_ids = @(0, 1, 2, 3, 4, 5, 6, 7)
+$expected_pci_info_designations = @("PEX16_1", "PEX16_2", "PEX16_3", "PEX16_4", "PEX16_5", "PEX16_6", "PEX16_7", "PEX16_8")
+$expected_gpu_busids = @("MISSING", "10:00.0", "13:00.0", "16:00.0", "03:00.0", "06:00.0", "09:00.0", "0c:00.0")
+$expected_gpu_missing_devices = 1
+$expected_gpu_ids = @("-", "0", "1", "2", "3", "4", "5", "6")
+$expected_gi_indicators = $null
+$expected_total_detected_cards = 7
+```
+`run_tests.ps1` simply compares the expected values with the output of the script to ensure all the data retrieval was successful.
