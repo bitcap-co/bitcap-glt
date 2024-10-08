@@ -19,5 +19,5 @@ jobs:
           dpkg-deb --build --root-owner-group bitcap-glt "bitcap-glt_${{github.ref_name}}_all.deb"
       - uses: ncipollo/release-action@v1
         with:
-          artifacts: "bitcap-glt_${{github.ref_name}}_all.deb"
+          artifacts: "hiveos/package/bitcap-glt_${{github.ref_name}}_all.deb"
           draft: true
