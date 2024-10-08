@@ -3,4 +3,4 @@ Version: 0.0.4
 Maintainer: MatthewWertman
 Architecture: all
 Homepage: https://github.com/bitcap-co/bitcap-glt
-Description: bitcap-glt is a standalone version of the gpu_lookup_table script intergated into hiveOS.
+Description: bitcap-glt is a standalone version of GLT integrated directly into hiveOS.
