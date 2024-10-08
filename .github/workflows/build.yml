@@ -2,7 +2,8 @@ name: Build using ps2exe
 on:
   push:
     tags:
-      - '*'
+      - 'v*.*.*'
+      - '!v*.*.*-hiveos'
 
 jobs:
   Build-GLT-With-ps2exe:
