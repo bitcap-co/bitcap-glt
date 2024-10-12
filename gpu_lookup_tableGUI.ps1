@@ -70,12 +70,12 @@ $octo12_hard_map = @('01', '07', '0c', '0d', '0b', '05', '0a', '04', '09', '03',
 
 Function Find-GPU-Context-Offset
 {
-    $gpu_driver = (Get-Content .\gpu_driver.txt)
-    if ($gpu_driver -eq 'nvidia')
+    $gpu_driver_context = (Get-Content .\gpu_driver.txt)
+    if ($gpu_driver_context -eq 'nvidia')
     {
         return 1
     }
-    elseif ($gpu_driver -eq 'amdgpu')
+    elseif ($gpu_driver_context -eq 'amdgpu')
     {
         if ((Get-Content .\lspcimm.txt | Select-String -Pattern 'Ellesmere').Matches)
         {
@@ -83,7 +83,7 @@ Function Find-GPU-Context-Offset
         }
         return 2
     }
-    return $gpu_driver
+    return $gpu_driver_context
 }
 
 
@@ -161,6 +161,13 @@ Function Read-All-GPU-Busids
         $gdev += $installed_gpu
     }
     return Write-Output -NoEnumerate $gdev
+}
+
+
+Function Get-GPU-Driver
+{
+    $gpu_driver = (Get-Content .\gpu_driver.txt)
+    return $gpu_driver
 }
 
 
