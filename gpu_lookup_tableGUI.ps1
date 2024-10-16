@@ -669,10 +669,11 @@ Function Show-Column
 {
     param (
         [Parameter(Mandatory, ValueFromPipeline)][string]$line,
+        [string]$Delimiter,
         [int]$Column
     )
-
-    ($line -split ' ')[$Column]
+    if (! $Delimiter) { $Delimiter = ' ' }
+    ($line -split $Delimiter)[$Column]
 }
 
 
