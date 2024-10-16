@@ -559,11 +559,16 @@ Function Test-If-Empty
         $arr
     )
 
-    if ($arr -and $arr[0] -is [int]) {
-        return ('@(' + ($arr -join ", ") + ')')
-    } elseif ($arr) {
+    if ($arr -and $arr[0] -is [int])
+    {
+        return ('@(' + ($arr -join ', ') + ')')
+    }
+    elseif ($arr)
+    {
         return ('@("' + ($arr -join '", "') + '")')
-    } else {
+    }
+    else
+    {
         return '$null'
     }
 }
@@ -895,8 +900,8 @@ if (-not $config.tests.testMode)
     if ($config.debug.genExpected)
     {
         if (-not (Test-Path .\expected.ps1))
-            {
-                $expected = @'
+        {
+            $expected = @'
 #{0}
 $expected_mb_product_name = "{1}"
 $expected_PIRQ_FOUND = ${2}
@@ -911,27 +916,27 @@ $expected_gpu_ids = @({10})
 $expected_gi_indicators = {11}
 $expected_total_detected_cards = {12}
 '@
-                $expected -f 'expected.ps1',
-                             $mb_product_name,
-                             $PIRQ_FOUND,
-                             (Test-If-Empty $pirq_map),
-                             ('"' + ($pci_busids -join '", "') + '"'),
-                             $pci_missing_devices.Count,
-                             ($pci_info_ids -join ", "),
-                             ('"' + ($pci_info_designations -join '", "') + '"'),
-                             ('"' + ($gpu_busids -join '", "') + '"'),
-                             $gpu_missing_devices.Count,
-                             ('"' + ($gpu_ids -join '", "') + '"'),
-                             (Test-If-Empty $gi_indicators),
-                             $n_detected_cards | Out-File '.\expected.ps1'
-            }
-            Expand-Tar "..\$remote_ip.tar.bz2" .
-            Expand-Tar "$remote_ip.tar" .
-            Update-Tar "$remote_ip.tar" .\expected.ps1
-            Update-Tar "..\$remote_ip.tar.bz2" "$remote_ip.tar"
-            Remove-Item "$remote_ip.tar"
-            Remove-Item .\expected.ps1
-            Write-Verbose "Successfully updated archive with test file."
+            $expected -f 'expected.ps1',
+            $mb_product_name,
+            $PIRQ_FOUND,
+            (Test-If-Empty $pirq_map),
+            ('"' + ($pci_busids -join '", "') + '"'),
+            $pci_missing_devices.Count,
+            ($pci_info_ids -join ', '),
+            ('"' + ($pci_info_designations -join '", "') + '"'),
+            ('"' + ($gpu_busids -join '", "') + '"'),
+            $gpu_missing_devices.Count,
+            ('"' + ($gpu_ids -join '", "') + '"'),
+            (Test-If-Empty $gi_indicators),
+            $n_detected_cards | Out-File '.\expected.ps1'
+        }
+        Expand-Tar "..\$remote_ip.tar.bz2" .
+        Expand-Tar "$remote_ip.tar" .
+        Update-Tar "$remote_ip.tar" .\expected.ps1
+        Update-Tar "..\$remote_ip.tar.bz2" "$remote_ip.tar"
+        Remove-Item "$remote_ip.tar"
+        Remove-Item .\expected.ps1
+        Write-Verbose 'Successfully updated archive with test file.'
     }
 }
 Write-Verbose 'Done!'
