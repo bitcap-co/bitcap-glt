@@ -178,11 +178,28 @@ Function Get-GPU-Driver
 Function Get-GPU-Info
 {
     $gpu_infos = @()
-    $gpu_detect = (Get-Content .\gpu_detect.json) | ConvertFrom-Json
+    $gpu_driver = Get-GPU-Driver
+    $gpu_data = (Get-Content .\nvidiasmi.txt)
+    $gpu_type = 'nvidia'
+    if ($gpu_driver -eq 'amdgpu')
+    {
+        $gpu_data = (Get-Content .\dmesgamd.txt)
+        $gpu_type = 'amd'
+    }
     foreach ($bus in $gpu_busids)
     {
-        $bus_info = $gpu_detect | Where-Object { $_.busid -eq $bus }
-        $gpu_infos += '{0} {1} {2}' -f ($bus_info.subvendor, $bus_info.name, $bus_info.mem)
+        if ($bus -eq 'MISSING') { continue }
+        $subvender = (Get-Content .\lspcimm.txt | Select-String -Pattern "$bus").Line | Show-Column -Delimiter '"' -Column 7
+        if ($gpu_type -eq 'amd')
+        {
+            $name = (Get-Content .\lspcimm.txt | Select-String -Pattern "$bus").Line | Show-Column -Delimiter '"' -Column 5
+            $mem = ($gpu_data | Select-String -Pattern "amdgpu 0000:${bus}:.*?VRAM:\s([^\s]+)").Matches.Groups[1].Value
+        } elseif ($gpu_type -eq 'nvidia')
+        {
+            $name = ($gpu_data | Select-String -Pattern "00000000:$bus").Line | Show-Column -Delimiter ',' -Column 1
+            $mem = ($gpu_data | Select-String -Pattern "00000000:$bus").Line | Show-Column -Delimiter ',' -Column 2
+        }
+        $gpu_infos += '{0} {1} {2}' -f ($subvender, $name, $mem)
     }
     return Write-Output -NoEnumerate $gpu_infos
 }
