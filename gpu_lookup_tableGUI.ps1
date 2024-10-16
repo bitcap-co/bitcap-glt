@@ -167,6 +167,10 @@ Function Read-All-GPU-Busids
 Function Get-GPU-Driver
 {
     $gpu_driver = (Get-Content .\gpu_driver.txt)
+    if (! $gpu_driver)
+    {
+        Throw 'ERROR (Unknown GPU Driver: unable to find gpu driver.)'
+    }
     return $gpu_driver
 }
 
