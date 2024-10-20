@@ -459,14 +459,14 @@ Function Request-Data
     $bios_info = ''
     if ($config.debug.debugBIOS)
     {
-        $bios_info = 'for d in system-manufacturer system-product-name bios-release-date bios-version; do echo "${d^} : " $(sudo dmidecode -s $d); done > /tmp/dmidecodebios.txt;'
+        $bios_info = "for d in system-manufacturer system-product-name bios-release-date bios-version; do echo `"`${d^} : `" `$(echo `"$pl_passwd`" | sudo -S -k dmidecode -s `$d); done > /tmp/dmidecodebios.txt;"
     }
     $gi_info = ''
     if ($config.options.checkGI)
     {
         $gi_info = "head -n 30 /var/log/awesome/$($miner.softwareType)*/console_output.txt > /tmp/console_output.txt;"
     }
-    $payload = "$bios_info $gi_info lsmod | grep -oE 'nvidia|amdgpu' -m 1 > /tmp/gpu_driver.txt; sudo dmesg | grep 'amdgpu 0000:' > /tmp/dmesgamd.txt; nvidia-smi --query-gpu=gpu_bus_id,name,memory.total --format=csv,noheader > /tmp/nvidiasmi.txt; sudo dmidecode -s baseboard-product-name > /tmp/mb_product_name.txt; sudo dmidecode -t 9 > /tmp/dmidecodet9.txt; sudo biosdecode > /tmp/biosdecode.txt; sudo lspci -mm > /tmp/lspcimm.txt; sudo lshw | grep 'pci@' > /tmp/lshwpci.txt; cd /tmp && tar -jcf - gpu_driver.txt dmesgamd.txt nvidiasmi.txt mb_product_name.txt dmidecodebios.txt dmidecodet9.txt biosdecode.txt lspcimm.txt lshwpci.txt console_output.txt"
+    $payload = "$bios_info $gi_info lsmod | grep -oE 'nvidia|amdgpu' -m 1 > /tmp/gpu_driver.txt; echo `"$pl_passwd`" | sudo -S -k dmesg | grep 'amdgpu 0000:' > /tmp/dmesgamd.txt; nvidia-smi --query-gpu=gpu_bus_id,name,memory.total --format=csv,noheader > /tmp/nvidiasmi.txt; echo `"$pl_passwd`" | sudo -S -k dmidecode -s baseboard-product-name > /tmp/mb_product_name.txt; echo `"$pl_passwd`" | sudo -S -k dmidecode -t 9 > /tmp/dmidecodet9.txt; echo `"$pl_passwd`" | sudo -S -k biosdecode > /tmp/biosdecode.txt; lspci -mm > /tmp/lspcimm.txt; echo `"$pl_passwd`" | sudo -S -k lshw | grep 'pci@' > /tmp/lshwpci.txt; cd /tmp && tar -jcf - gpu_driver.txt dmesgamd.txt nvidiasmi.txt mb_product_name.txt dmidecodebios.txt dmidecodet9.txt biosdecode.txt lspcimm.txt lshwpci.txt console_output.txt"
     $cmd_string = "`"$plink`" -ssh -pw `"$pl_passwd`" -batch user@$remote_ip `"$payload`" > ..\$remote_ip.tar.bz2"
     & $CMD /c $cmd_string 2> $null
     # lets exit if we encounter errors with plink
