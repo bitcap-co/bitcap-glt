@@ -29,7 +29,7 @@ jobs:
           Copy-Item -Path .\glt_launcher.exe -Destination .\dist\gpu_lookup\src\
           Copy-Item -Path .\resources\* -Destination .\dist\gpu_lookup\src\resources\icons -Recurse
           Copy-Item -Path .\GUI.xaml -Destination .\dist\gpu_lookup\src\
-          Copy-Item .\glt_launcher.ps1,.\gpu_lookup_tableGUI.ps1,.\help_man.ps1 -Destination .\dist\gpu_lookup\src\
+          Copy-Item .\glt_launcher.ps1,.\gpu_lookup_tableGUI.ps1,.\p7zip_util.ps1,.\help_man.ps1 -Destination .\dist\gpu_lookup\src\
       - name: Compress package directory
         shell: powershell
         run: |

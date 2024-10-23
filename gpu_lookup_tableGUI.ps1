@@ -70,12 +70,12 @@ $octo12_hard_map = @('01', '07', '0c', '0d', '0b', '05', '0a', '04', '09', '03',
 
 Function Find-GPU-Context-Offset
 {
-    $gpu_driver = (Get-Content .\gpu_driver.txt)
-    if ($gpu_driver -eq 'nvidia')
+    $gpu_driver_context = Get-GPU-Driver
+    if ($gpu_driver_context -eq 'nvidia')
     {
         return 1
     }
-    elseif ($gpu_driver -eq 'amdgpu')
+    elseif ($gpu_driver_context -eq 'amdgpu')
     {
         if ((Get-Content .\lspcimm.txt | Select-String -Pattern 'Ellesmere').Matches)
         {
@@ -83,7 +83,7 @@ Function Find-GPU-Context-Offset
         }
         return 2
     }
-    return $gpu_driver
+    return $gpu_driver_context
 }
 
 
@@ -164,14 +164,43 @@ Function Read-All-GPU-Busids
 }
 
 
+Function Get-GPU-Driver
+{
+    $gpu_driver = (Get-Content .\gpu_driver.txt)
+    if (! $gpu_driver)
+    {
+        Throw 'ERROR (Unknown GPU Driver: unable to find gpu driver.)'
+    }
+    return $gpu_driver
+}
+
+
 Function Get-GPU-Info
 {
     $gpu_infos = @()
-    $gpu_detect = (Get-Content .\gpu_detect.json) | ConvertFrom-Json
+    $gpu_driver = Get-GPU-Driver
+    $gpu_data = (Get-Content .\nvidiasmi.txt)
+    $gpu_type = 'nvidia'
+    if ($gpu_driver -eq 'amdgpu')
+    {
+        $gpu_data = (Get-Content .\dmesgamd.txt)
+        $gpu_type = 'amd'
+    }
     foreach ($bus in $gpu_busids)
     {
-        $bus_info = $gpu_detect | Where-Object { $_.busid -eq $bus }
-        $gpu_infos += '{0} {1} {2}' -f ($bus_info.subvendor, $bus_info.name, $bus_info.mem)
+        if ($bus -eq 'MISSING') { continue }
+        $subvender = (Get-Content .\lspcimm.txt | Select-String -Pattern "$bus").Line | Show-Column -Delimiter '"' -Column 7
+        if ($gpu_type -eq 'amd')
+        {
+            $name = (Get-Content .\lspcimm.txt | Select-String -Pattern "$bus").Line | Show-Column -Delimiter '"' -Column 5
+            $mem = ($gpu_data | Select-String -Pattern "amdgpu 0000:${bus}:.*?VRAM:\s([^\s]+)").Matches.Groups[1].Value
+        }
+        elseif ($gpu_type -eq 'nvidia')
+        {
+            $name = ($gpu_data | Select-String -Pattern "00000000:$bus").Line | Show-Column -Delimiter ',' -Column 1
+            $mem = ($gpu_data | Select-String -Pattern "00000000:$bus").Line | Show-Column -Delimiter ',' -Column 2
+        }
+        $gpu_infos += '{0} {1} {2}' -f ($subvender, $name, $mem)
     }
     return Write-Output -NoEnumerate $gpu_infos
 }
@@ -427,22 +456,52 @@ Function Request-Data
 {
     # Need to make manual connection first to accept remote host key
     Write-Output 'Ensuring remote host is trusted and can connect...'
-    Write-Output 'y' | & $plink -ssh  user@$remote_ip 2> $null
-    $bios_info = ''
+    Write-Output 'y' | & $plink -ssh  $username@$remote_ip 2> $null
+    $bios_info = '#'
+    $gi_info = '#'
     if ($config.debug.debugBIOS)
     {
-        $bios_info = 'for d in system-manufacturer system-product-name bios-release-date bios-version; do echo "${d^} : " $(sudo dmidecode -s $d); done > /tmp/dmidecodebios.txt;'
+        $bios_info = "    for d in system-manufacturer system-product-name bios-release-date bios-version; do echo `"`${d^} : `" `$(echo `"$pl_passwd`" | sudo -S -k dmidecode -s `$d); done > /tmp/dmidecodebios.txt"
     }
-    $gi_info = ''
     if ($config.options.checkGI)
     {
-        $gi_info = "head -n 30 /var/log/awesome/$($miner.softwareType)*/console_output.txt > /tmp/console_output.txt;"
+        $gi_info = "    head -n 30 /var/log/awesome/$($miner.softwareType)*/console_output.txt > /tmp/console_output.txt;"
     }
-    $payload = "$bios_info $gi_info lsmod | grep -oE 'nvidia|amdgpu' -m 1 > /tmp/gpu_driver.txt; cat `$GPU_DETECT_JSON > /tmp/gpu_detect.json; sudo dmidecode -s baseboard-product-name > /tmp/mb_product_name.txt; sudo dmidecode -t 9 > /tmp/dmidecodet9.txt; sudo biosdecode > /tmp/biosdecode.txt; sudo lspci -mm > /tmp/lspcimm.txt; sudo lshw | grep 'pci@' > /tmp/lshwpci.txt; cd /tmp && tar -jcf - gpu_driver.txt gpu_detect.json mb_product_name.txt dmidecodebios.txt dmidecodet9.txt biosdecode.txt lspcimm.txt lshwpci.txt console_output.txt"
-    $cmd_string = "`"$plink`" -ssh -pw `"$pl_passwd`" -batch user@$remote_ip `"$payload`" > ..\$remote_ip.tar.bz2"
+    @"
+function check_depends {
+    echo `"$pl_passwd`" | sudo -S -k apt-get update &> /dev/null
+    for d in dmidecode lshw; do
+        PKG_OK=`$(dpkg-query -W --showformat='`${Status}\n' `"`$d`" | grep `"install ok installed`")
+        if [[ `"`" == `"`$PKG_OK`" ]]; then
+            echo `"$pl_passwd`" | sudo -S -k apt-get install `"`$d`" &> /dev/null
+        fi
+    done
+}
+if [[ `$(groups `"`$USER`" | grep -qE 'sudo|root') -eq 1 ]]; then
+    echo "ERROR: `$USER is not sudoer!"
+else
+    check_depends
+    $bios_info
+    $gi_info
+    lsmod | grep -oE 'nvidia|amdgpu' -m 1 > /tmp/gpu_driver.txt
+    echo `"$pl_passwd`" | sudo -S -k dmesg | grep 'amdgpu 0000:' > /tmp/dmesgamd.txt
+    nvidia-smi --query-gpu=gpu_bus_id,name,memory.total --format=csv,noheader > /tmp/nvidiasmi.txt
+    echo `"$pl_passwd`" | sudo -S -k dmidecode -s baseboard-product-name > /tmp/mb_product_name.txt
+    echo `"$pl_passwd`" | sudo -S -k dmidecode -t 9 > /tmp/dmidecodet9.txt
+    echo `"$pl_passwd`" | sudo -S -k biosdecode > /tmp/biosdecode.txt
+    lspci -mm > /tmp/lspcimm.txt
+    echo `"$pl_passwd`" | sudo -S -k lshw | grep 'pci@' > /tmp/lshwpci.txt
+    cd /tmp && tar -jcf - gpu_driver.txt dmesgamd.txt nvidiasmi.txt mb_product_name.txt dmidecodebios.txt dmidecodet9.txt biosdecode.txt lspcimm.txt lshwpci.txt console_output.txt
+fi
+"@ | Out-File -Encoding ascii -FilePath .\payload
+    $cmd_string = "`"$plink`" -ssh -pw `"$pl_passwd`" -batch $username@$remote_ip -m .\payload > ..\$remote_ip.tar.bz2"
     & $CMD /c $cmd_string 2> $null
     # lets exit if we encounter errors with plink
     if ($LASTEXITCODE -eq 1) { Throw 'ERROR (Connection Error: unable to connect to remote IP. Supplied password may not have been accepted)' }
+    if ((Get-Content "..\$remote_ip.tar.bz2" | Select-String -Pattern 'ERROR').Line)
+    {
+        Throw 'ERROR (Permission Error: Supplied User is not sudoer)'
+    }
     Expand-Tar "..\$remote_ip.tar.bz2" .
     Expand-Tar "$remote_ip.tar" .
     if ($config.debug.keepFiles)
@@ -457,6 +516,7 @@ Function Request-Data
         Remove-Item "..\$remote_ip.tar.bz2" -ErrorAction SilentlyContinue
     }
     Remove-Item "$remote_ip.tar" -ErrorAction SilentlyContinue
+    Remove-Item .\payload -ErrorAction SilentlyContinue
 }
 
 
@@ -531,11 +591,16 @@ Function Test-If-Empty
         $arr
     )
 
-    if ($arr -and $arr[0] -is [int]) {
-        return ('@(' + ($arr -join ", ") + ')')
-    } elseif ($arr) {
+    if ($arr -and $arr[0] -is [int])
+    {
+        return ('@(' + ($arr -join ', ') + ')')
+    }
+    elseif ($arr)
+    {
         return ('@("' + ($arr -join '", "') + '")')
-    } else {
+    }
+    else
+    {
         return '$null'
     }
 }
@@ -641,10 +706,11 @@ Function Show-Column
 {
     param (
         [Parameter(Mandatory, ValueFromPipeline)][string]$line,
+        [string]$Delimiter,
         [int]$Column
     )
-
-    ($line -split ' ')[$Column]
+    if (! $Delimiter) { $Delimiter = ' ' }
+    ($line -split $Delimiter)[$Column]
 }
 
 
@@ -671,12 +737,17 @@ if ($config.debug.debugMode)
 $CMD = 'C:\Windows\System32\cmd.exe'
 
 $remote_ip = $config.options.input.remoteIP
+$username = $config.options.input.username
 $remote_passwd = $config.options.input.passwd
 $search_list = ($config.options.input.filterList).Split(',')
 
 # Comment when debugging
 if (-not $config.debug.debugMode -and -not $config.tests.testMode)
 {
+    if (! $username.Length)
+    {
+        $username = 'user'
+    }
     if (! $remote_passwd.Length)
     {
         if (! $env:Default) { Throw 'ERROR (Missing Credentials: No password for remote target supplied)' }
@@ -691,7 +762,7 @@ if (-not $config.debug.debugMode -and -not $config.tests.testMode)
     if ($putty -and $config.options.checkPutty)
     {
         # Launch a new PuTTY session for further debugging
-        $cmd_args = "-ssh -l user -pw `"$pl_passwd`" $remote_ip"
+        $cmd_args = "-ssh -l $username -pw `"$pl_passwd`" $remote_ip"
         Start-Process -FilePath $putty -ArgumentList $cmd_args
     }
     $miner = Find-GPU-Miner
@@ -866,8 +937,8 @@ if (-not $config.tests.testMode)
     if ($config.debug.genExpected)
     {
         if (-not (Test-Path .\expected.ps1))
-            {
-                $expected = @'
+        {
+            $expected = @'
 #{0}
 $expected_mb_product_name = "{1}"
 $expected_PIRQ_FOUND = ${2}
@@ -882,27 +953,27 @@ $expected_gpu_ids = @({10})
 $expected_gi_indicators = {11}
 $expected_total_detected_cards = {12}
 '@
-                $expected -f 'expected.ps1',
-                             $mb_product_name,
-                             $PIRQ_FOUND,
-                             (Test-If-Empty $pirq_map),
-                             ('"' + ($pci_busids -join '", "') + '"'),
-                             $pci_missing_devices.Count,
-                             ($pci_info_ids -join ", "),
-                             ('"' + ($pci_info_designations -join '", "') + '"'),
-                             ('"' + ($gpu_busids -join '", "') + '"'),
-                             $gpu_missing_devices.Count,
-                             ('"' + ($gpu_ids -join '", "') + '"'),
-                             (Test-If-Empty $gi_indicators),
-                             $n_detected_cards | Out-File '.\expected.ps1'
-            }
-            Expand-Tar "..\$remote_ip.tar.bz2" .
-            Expand-Tar "$remote_ip.tar" .
-            Update-Tar "$remote_ip.tar" .\expected.ps1
-            Update-Tar "..\$remote_ip.tar.bz2" "$remote_ip.tar"
-            Remove-Item "$remote_ip.tar"
-            Remove-Item .\expected.ps1
-            Write-Verbose "Successfully updated archive with test file."
+            $expected -f 'expected.ps1',
+            $mb_product_name,
+            $PIRQ_FOUND,
+            (Test-If-Empty $pirq_map),
+            ('"' + ($pci_busids -join '", "') + '"'),
+            $pci_missing_devices.Count,
+            ($pci_info_ids -join ', '),
+            ('"' + ($pci_info_designations -join '", "') + '"'),
+            ('"' + ($gpu_busids -join '", "') + '"'),
+            $gpu_missing_devices.Count,
+            ('"' + ($gpu_ids -join '", "') + '"'),
+            (Test-If-Empty $gi_indicators),
+            $n_detected_cards | Out-File '.\expected.ps1'
+        }
+        Expand-Tar "..\$remote_ip.tar.bz2" .
+        Expand-Tar "$remote_ip.tar" .
+        Update-Tar "$remote_ip.tar" .\expected.ps1
+        Update-Tar "..\$remote_ip.tar.bz2" "$remote_ip.tar"
+        Remove-Item "$remote_ip.tar"
+        Remove-Item .\expected.ps1
+        Write-Verbose 'Successfully updated archive with test file.'
     }
 }
 Write-Verbose 'Done!'
