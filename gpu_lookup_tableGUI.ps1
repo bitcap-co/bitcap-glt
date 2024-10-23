@@ -70,7 +70,7 @@ $octo12_hard_map = @('01', '07', '0c', '0d', '0b', '05', '0a', '04', '09', '03',
 
 Function Find-GPU-Context-Offset
 {
-    $gpu_driver_context = (Get-Content .\gpu_driver.txt)
+    $gpu_driver_context = Get-GPU-Driver
     if ($gpu_driver_context -eq 'nvidia')
     {
         return 1
