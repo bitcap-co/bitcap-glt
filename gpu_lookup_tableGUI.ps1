@@ -194,7 +194,8 @@ Function Get-GPU-Info
         {
             $name = (Get-Content .\lspcimm.txt | Select-String -Pattern "$bus").Line | Show-Column -Delimiter '"' -Column 5
             $mem = ($gpu_data | Select-String -Pattern "amdgpu 0000:${bus}:.*?VRAM:\s([^\s]+)").Matches.Groups[1].Value
-        } elseif ($gpu_type -eq 'nvidia')
+        }
+        elseif ($gpu_type -eq 'nvidia')
         {
             $name = ($gpu_data | Select-String -Pattern "00000000:$bus").Line | Show-Column -Delimiter ',' -Column 1
             $mem = ($gpu_data | Select-String -Pattern "00000000:$bus").Line | Show-Column -Delimiter ',' -Column 2
@@ -466,7 +467,7 @@ Function Request-Data
     {
         $gi_info = "    head -n 30 /var/log/awesome/$($miner.softwareType)*/console_output.txt > /tmp/console_output.txt;"
     }
-@"
+    @"
 function check_depends {
     echo `"$pl_passwd`" | sudo -S -k apt-get update &> /dev/null
     for d in dmidecode lshw; do
@@ -497,7 +498,8 @@ fi
     & $CMD /c $cmd_string 2> $null
     # lets exit if we encounter errors with plink
     if ($LASTEXITCODE -eq 1) { Throw 'ERROR (Connection Error: unable to connect to remote IP. Supplied password may not have been accepted)' }
-    if ((Get-Content "..\$remote_ip.tar.bz2" | Select-String -Pattern "ERROR").Line) {
+    if ((Get-Content "..\$remote_ip.tar.bz2" | Select-String -Pattern 'ERROR').Line)
+    {
         Throw 'ERROR (Permission Error: Supplied User is not sudoer)'
     }
     Expand-Tar "..\$remote_ip.tar.bz2" .
