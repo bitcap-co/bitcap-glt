@@ -456,21 +456,50 @@ Function Request-Data
     # Need to make manual connection first to accept remote host key
     Write-Output 'Ensuring remote host is trusted and can connect...'
     Write-Output 'y' | & $plink -ssh  user@$remote_ip 2> $null
-    $bios_info = ''
+    $bios_info = '#'
+    $gi_info = '#'
     if ($config.debug.debugBIOS)
     {
-        $bios_info = "for d in system-manufacturer system-product-name bios-release-date bios-version; do echo `"`${d^} : `" `$(echo `"$pl_passwd`" | sudo -S -k dmidecode -s `$d); done > /tmp/dmidecodebios.txt;"
+        $bios_info = "    for d in system-manufacturer system-product-name bios-release-date bios-version; do echo `"`${d^} : `" `$(echo `"$pl_passwd`" | sudo -S -k dmidecode -s `$d); done > /tmp/dmidecodebios.txt"
     }
-    $gi_info = ''
     if ($config.options.checkGI)
     {
-        $gi_info = "head -n 30 /var/log/awesome/$($miner.softwareType)*/console_output.txt > /tmp/console_output.txt;"
+        $gi_info = "    head -n 30 /var/log/awesome/$($miner.softwareType)*/console_output.txt > /tmp/console_output.txt;"
     }
-    $payload = "$bios_info $gi_info lsmod | grep -oE 'nvidia|amdgpu' -m 1 > /tmp/gpu_driver.txt; echo `"$pl_passwd`" | sudo -S -k dmesg | grep 'amdgpu 0000:' > /tmp/dmesgamd.txt; nvidia-smi --query-gpu=gpu_bus_id,name,memory.total --format=csv,noheader > /tmp/nvidiasmi.txt; echo `"$pl_passwd`" | sudo -S -k dmidecode -s baseboard-product-name > /tmp/mb_product_name.txt; echo `"$pl_passwd`" | sudo -S -k dmidecode -t 9 > /tmp/dmidecodet9.txt; echo `"$pl_passwd`" | sudo -S -k biosdecode > /tmp/biosdecode.txt; lspci -mm > /tmp/lspcimm.txt; echo `"$pl_passwd`" | sudo -S -k lshw | grep 'pci@' > /tmp/lshwpci.txt; cd /tmp && tar -jcf - gpu_driver.txt dmesgamd.txt nvidiasmi.txt mb_product_name.txt dmidecodebios.txt dmidecodet9.txt biosdecode.txt lspcimm.txt lshwpci.txt console_output.txt"
-    $cmd_string = "`"$plink`" -ssh -pw `"$pl_passwd`" -batch user@$remote_ip `"$payload`" > ..\$remote_ip.tar.bz2"
+@"
+function check_depends {
+    echo `"$pl_passwd`" | sudo -S -k apt-get update &> /dev/null
+    for d in dmidecode lshw; do
+        PKG_OK=`$(dpkg-query -W --showformat='`${Status}\n' `"`$d`" | grep `"install ok installed`")
+        if [[ `"`" == `"`$PKG_OK`" ]]; then
+            echo `"$pl_passwd`" | sudo -S -k apt-get install `"`$d`" &> /dev/null
+        fi
+    done
+}
+if [[ `$(groups `"`$USER`" | grep -qE 'sudo|root') -eq 1 ]]; then
+    echo "ERROR: `$USER is not sudoer!"
+else
+    check_depends
+    $bios_info
+    $gi_info
+    lsmod | grep -oE 'nvidia|amdgpu' -m 1 > /tmp/gpu_driver.txt
+    echo `"$pl_passwd`" | sudo -S -k dmesg | grep 'amdgpu 0000:' > /tmp/dmesgamd.txt
+    nvidia-smi --query-gpu=gpu_bus_id,name,memory.total --format=csv,noheader > /tmp/nvidiasmi.txt
+    echo `"$pl_passwd`" | sudo -S -k dmidecode -s baseboard-product-name > /tmp/mb_product_name.txt
+    echo `"$pl_passwd`" | sudo -S -k dmidecode -t 9 > /tmp/dmidecodet9.txt
+    echo `"$pl_passwd`" | sudo -S -k biosdecode > /tmp/biosdecode.txt
+    lspci -mm > /tmp/lspcimm.txt
+    echo `"$pl_passwd`" | sudo -S -k lshw | grep 'pci@' > /tmp/lshwpci.txt
+    cd /tmp && tar -jcf - gpu_driver.txt dmesgamd.txt nvidiasmi.txt mb_product_name.txt dmidecodebios.txt dmidecodet9.txt biosdecode.txt lspcimm.txt lshwpci.txt console_output.txt
+fi
+"@ | Out-File -Encoding ascii -FilePath .\payload
+    $cmd_string = "`"$plink`" -ssh -pw `"$pl_passwd`" -batch user@$remote_ip -m .\payload > ..\$remote_ip.tar.bz2"
     & $CMD /c $cmd_string 2> $null
     # lets exit if we encounter errors with plink
     if ($LASTEXITCODE -eq 1) { Throw 'ERROR (Connection Error: unable to connect to remote IP. Supplied password may not have been accepted)' }
+    if ((Get-Content "..\$remote_ip.tar.bz2" | Select-String -Pattern "ERROR").Line) {
+        Throw 'ERROR (Permission Error: Supplied User is not sudoer)'
+    }
     Expand-Tar "..\$remote_ip.tar.bz2" .
     Expand-Tar "$remote_ip.tar" .
     if ($config.debug.keepFiles)
@@ -485,6 +514,7 @@ Function Request-Data
         Remove-Item "..\$remote_ip.tar.bz2" -ErrorAction SilentlyContinue
     }
     Remove-Item "$remote_ip.tar" -ErrorAction SilentlyContinue
+    Remove-Item .\payload -ErrorAction SilentlyContinue
 }
 
 
