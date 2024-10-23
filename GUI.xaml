@@ -34,7 +34,7 @@
             </MenuItem>
         </Menu>
         <Grid Margin="10,10,6,8">
-            <Viewbox x:Name="SVGLogoViewBox" Height="80" Margin="0,200,0,200" Opacity="0.75" Width="200">
+            <Viewbox x:Name="SVGLogoViewBox" Height="80" Margin="0,210,0,200" Opacity="0.75" Width="200">
                 <Grid>
                     <!--<Path Fill ="#eb993b" Data="M 194.32,0 V 100.82 H 96.65 V 199.3 H 0 V 315.38 H 314 V 0 Z M 96.65,300.12 H 15.26 v -85.56 h 81.39 z m 97.67,0 h -80.58 v -85.56 h 80.58 z m 0,-100.82 h -80.58 v -83.22 h 80.58 z M 298.7,300.12 h -88.51 v -85.56 h 88.51 z m 0,-100.82 h -88.51 v -83.22 h 88.51 z m 0,-98.48 H 210.19 V 15.26 h 88.51 z"/>-->
                     <Rectangle Fill="#eb993b" Margin="215,25,1450,0" Height="85" VerticalAlignment="Top" />
@@ -64,11 +64,13 @@
             <Label Content="GPU Lookup Table GUI" HorizontalAlignment="Center" Margin="0,10,0,0" VerticalAlignment="Top" FontSize="16" FontWeight="Bold" Foreground="#FFEEEEEE" Width="186" Height="30"/>
             <TextBox x:Name="TextRemoteIP" HorizontalAlignment="Center" Margin="0,60,0,0" Text="192.168." VerticalAlignment="Top" Width="130" Background="White" FontStyle="Italic" TextAlignment="Center" Height="18" AutoWordSelection="True" Cursor="IBeam" ToolTip="Enter remote IP address." InputScope="Url" FontFamily="Consolas" MaxLength="15" MaxLines="1" FontSize="14"/>
             <Label Content="Credentials" HorizontalAlignment="Center" Margin="0,100,0,0" VerticalAlignment="Top" Foreground="#FFEEEEEE" FontSize="15" FontWeight="Bold"/>
-            <Label Content="Password: " HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="#FFEEEEEE" Width="74" Height="24" FontWeight="Normal" Margin="64,136,0,0"/>
-            <PasswordBox x:Name="PasswdBox" HorizontalAlignment="Left" Margin="150,140,0,0" VerticalAlignment="Top" Width="120" ToolTip="Leave blank to use the set default password"/>
-            <Label x:Name="LabelFilterTitle" Content="Filtering" HorizontalAlignment="Center" Margin="0,196,0,0" VerticalAlignment="Top" Foreground="#FFEEEEEE" FontSize="15" FontWeight="Bold"/>
-            <Label x:Name="LabelFilter" Content="Filter List: " HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="#FFEEEEEE" Width="74" Height="24" FontWeight="Normal" Margin="64,232,0,0"/>
-            <TextBox x:Name="TextFilterList" HorizontalAlignment="Left" Margin="150,236,0,0" VerticalAlignment="Top" Width="120" Cursor="IBeam" AutoWordSelection="True" FontStyle="Italic" TextAlignment="Left" Height="18" ToolTip="Enter GPU device index(es) (comma-separated)." MaxLines="1" FontSize="14"/>
+            <Label Content="Username: " HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="#FFEEEEEE" Width="81" Height="24" FontWeight="Normal" Margin="64,136,0,0"/>
+            <TextBox x:Name="TextUser" HorizontalAlignment="Left" Margin="150,141,0,0" VerticalAlignment="Top" Width="120" ToolTip="Leave blank to use the set default user ('user')"/>
+            <Label Content="Password : " HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="#FFEEEEEE" Width="81" Height="24" FontWeight="Normal" Margin="64,160,0,0"/>
+            <PasswordBox x:Name="PasswdBox" HorizontalAlignment="Left" Margin="150,165,0,0" VerticalAlignment="Top" Width="120" ToolTip="Leave blank to use the set default password"/>
+            <Label x:Name="LabelFilterTitle" Content="Filtering" HorizontalAlignment="Center" Margin="0,206,0,0" VerticalAlignment="Top" Foreground="#FFEEEEEE" FontSize="15" FontWeight="Bold"/>
+            <Label x:Name="LabelFilter" Content="Filter List: " HorizontalAlignment="Left" VerticalAlignment="Top" Foreground="#FFEEEEEE" Width="74" Height="24" FontWeight="Normal" Margin="64,238,0,0"/>
+            <TextBox x:Name="TextFilterList" HorizontalAlignment="Left" Margin="150,243,0,0" VerticalAlignment="Top" Width="120" Cursor="IBeam" AutoWordSelection="True" FontStyle="Italic" TextAlignment="Left" Height="18" ToolTip="Enter GPU device index(es) (comma-separated)." MaxLines="1" FontSize="14"/>
             <Label Content="Quick Options" HorizontalAlignment="Center" VerticalAlignment="Top" Foreground="#FFEEEEEE" FontSize="15" FontWeight="Bold" Margin="0,280,0,0"/>
             <CheckBox x:Name="CheckAll" Content="Show All" HorizontalAlignment="Center" Margin="0,320,0,0" VerticalAlignment="Top" Foreground="#FFEEEEEE" ToolTip="Shows all devices. Uncheck to only show GI/MISSING cards." IsChecked="True"/>
             <CheckBox x:Name="CheckBypassAM" Content="Bypass AM Validation" HorizontalAlignment="Center" Margin="0,345,0,0" VerticalAlignment="Top" Foreground="#FFEEEEEE" ToolTip="Disables host validation with Awesome Miner API. NOTE: Will disable GI Examination" IsChecked="True"/>

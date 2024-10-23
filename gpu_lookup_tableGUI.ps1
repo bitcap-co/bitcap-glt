@@ -455,7 +455,7 @@ Function Request-Data
 {
     # Need to make manual connection first to accept remote host key
     Write-Output 'Ensuring remote host is trusted and can connect...'
-    Write-Output 'y' | & $plink -ssh  user@$remote_ip 2> $null
+    Write-Output 'y' | & $plink -ssh  $username@$remote_ip 2> $null
     $bios_info = '#'
     $gi_info = '#'
     if ($config.debug.debugBIOS)
@@ -493,7 +493,7 @@ else
     cd /tmp && tar -jcf - gpu_driver.txt dmesgamd.txt nvidiasmi.txt mb_product_name.txt dmidecodebios.txt dmidecodet9.txt biosdecode.txt lspcimm.txt lshwpci.txt console_output.txt
 fi
 "@ | Out-File -Encoding ascii -FilePath .\payload
-    $cmd_string = "`"$plink`" -ssh -pw `"$pl_passwd`" -batch user@$remote_ip -m .\payload > ..\$remote_ip.tar.bz2"
+    $cmd_string = "`"$plink`" -ssh -pw `"$pl_passwd`" -batch $username@$remote_ip -m .\payload > ..\$remote_ip.tar.bz2"
     & $CMD /c $cmd_string 2> $null
     # lets exit if we encounter errors with plink
     if ($LASTEXITCODE -eq 1) { Throw 'ERROR (Connection Error: unable to connect to remote IP. Supplied password may not have been accepted)' }
@@ -735,12 +735,17 @@ if ($config.debug.debugMode)
 $CMD = 'C:\Windows\System32\cmd.exe'
 
 $remote_ip = $config.options.input.remoteIP
+$username = $config.options.input.username
 $remote_passwd = $config.options.input.passwd
 $search_list = ($config.options.input.filterList).Split(',')
 
 # Comment when debugging
 if (-not $config.debug.debugMode -and -not $config.tests.testMode)
 {
+    if (! $username.Length)
+    {
+        $username = 'user'
+    }
     if (! $remote_passwd.Length)
     {
         if (! $env:Default) { Throw 'ERROR (Missing Credentials: No password for remote target supplied)' }
@@ -755,7 +760,7 @@ if (-not $config.debug.debugMode -and -not $config.tests.testMode)
     if ($putty -and $config.options.checkPutty)
     {
         # Launch a new PuTTY session for further debugging
-        $cmd_args = "-ssh -l user -pw `"$pl_passwd`" $remote_ip"
+        $cmd_args = "-ssh -l $username -pw `"$pl_passwd`" $remote_ip"
         Start-Process -FilePath $putty -ArgumentList $cmd_args
     }
     $miner = Find-GPU-Miner

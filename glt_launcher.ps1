@@ -356,6 +356,7 @@ $AcceptButton.add_click(
                 # input
                 input       = [PSCustomObject]@{
                     remoteIP   = $TextRemoteIP.Text
+                    username   = $TextUser.Text
                     passwd     = if ($PasswdBox.Password.Length) { ($PasswdBox.SecurePassword | ConvertFrom-SecureString) } else { '' }
                     filterList = $TextFilterList.Text
                 }
