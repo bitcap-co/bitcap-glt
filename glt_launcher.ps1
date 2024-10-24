@@ -344,17 +344,17 @@ $AcceptButton.add_click(
             }
             # debug
             debug    = [PSCustomObject]@{
-                debugMode = $DebugToolCheckDebug.IsChecked
-                keepFiles = $DebugToolCheckKeep.IsChecked
+                debugMode   = $DebugToolCheckDebug.IsChecked
+                keepFiles   = $DebugToolCheckKeep.IsChecked
                 genExpected = $DebugToolCheckGenExpected.IsChecked
-                debugBIOS = $DebugToolCheckBIOS.IsChecked
+                debugBIOS   = $DebugToolCheckBIOS.IsChecked
             }
             # options
             options  = [PSCustomObject]@{
-                filterMode  = $OptToolCheckFilter.IsChecked
-                listView    = $OptToolCheckLView.IsChecked
+                filterMode    = $OptToolCheckFilter.IsChecked
+                listView      = $OptToolCheckLView.IsChecked
                 # input
-                input       = [PSCustomObject]@{
+                input         = [PSCustomObject]@{
                     remoteIP   = $TextRemoteIP.Text
                     username   = $TextUser.Text
                     passwd     = if ($PasswdBox.Password.Length) { ($PasswdBox.SecurePassword | ConvertFrom-SecureString) } else { '' }
@@ -402,7 +402,7 @@ $AcceptButton.add_click(
         else
         {
             $miner = (Get-Content .\miner.json) | ConvertFrom-Json
-            $CMD_TITLE = "- DEBUG -"
+            $CMD_TITLE = '- DEBUG -'
         }
 
         $cmd_args = '/k', 'TITLE', "$CMD_TITLE", '&', 'powershell.exe', '-ep', 'Bypass', '.\gpu_lookup_tableGUI.ps1'

@@ -3,7 +3,8 @@ if (Test-Path -Path '.\instance.json')
 {
     $instance = (Get-Content '.\instance.json') | ConvertFrom-Json
     $P7Zip = $instance.programs.p7zip
-} else
+}
+else
 {
     $P7ZipLocations = 'C:\Program Files\7-Zip\', 'C:\Program Files (x86)\7-Zip\'
     $P7Zip = (Get-ChildItem -Path (& Get-Program $P7ZipLocations) -File 7z.exe).FullName
@@ -49,8 +50,8 @@ Function Test-Expected-Value
             return [PSCustomObject]@{
                 test     = $Name
                 passed   = $false
-                expected = ($compare | Where-Object {$_.SideIndicator -eq '<='}).InputObject -join ", "
-                result   = ($compare | Where-Object {$_.SideIndicator -eq '=>'}).InputObject -join ", "
+                expected = ($compare | Where-Object { $_.SideIndicator -eq '<=' }).InputObject -join ', '
+                result   = ($compare | Where-Object { $_.SideIndicator -eq '=>' }).InputObject -join ', '
             }
         }
         else
