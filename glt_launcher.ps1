@@ -117,11 +117,6 @@ Function Get-Miner-Obj
 Function Update-AM-Miner-List
 {
     # Fetch and store all miners from the AM dashboard
-    if (-not $AM_API_URL -or -not $AM_API_KEY)
-    {
-        Write-Warning "No AM API key or AM API host provided. Please check config.json."
-        return
-    }
     $ProgressPreference = 'SilentlyContinue'
     $miners = (Invoke-WebRequest -UseBasicParsing -Uri "$AM_API_URL/miners?key=$AM_API_KEY").Content | ConvertFrom-Json
     $ProgressPreference = 'Continue'
@@ -435,6 +430,13 @@ else
 if ($AM_API)
 {
     $CheckBypassAM.IsChecked = $FALSE
+    if (-not $AM_API_URL -or -not $AM_API_KEY)
+    {
+        # bypass one time with warning
+        Write-Warning 'No AwesomeMiner API host or key provided. Please check config.json. Ignoring...'
+        $config.params.awesomeMinerAPIConfig.enabled = $FALSE
+        $CheckBypassAM.IsChecked = $TRUE
+    }
 }
 else
 {
@@ -445,13 +447,9 @@ else
 if (-not (Test-Path .\miners.json))
 {
     Write-Verbose 'Detected first-time launch. fetching miner list...'
-    if ($AM_API)
+    if ($config.params.awesomeMinerAPIConfig.enabled)
     {
         Update-AM-Miner-List
-    }
-    else
-    {
-        Write-Warning 'AwesomeMiner API is disabled in config. Ignoring...'
     }
     # Make a shortcut to the app on the desktop
     $WScriptShell = New-Object -ComObject WScript.Shell
@@ -463,7 +461,7 @@ if (-not (Test-Path .\miners.json))
 }
 else
 {
-    if ($AM_API)
+    if ($config.params.awesomeMinerAPIConfig.enabled)
     {
         # update miner list if older than a week
         $last_accessed = (Get-Item .\miners.json).LastWriteTime | Get-Date -UFormat %s
@@ -471,10 +469,6 @@ else
         {
             Update-AM-Miner-List
         }
-    }
-    else
-    {
-        Write-Warning 'AwesomeMiner API is disabled in config. Ignoring...'
     }
 }
 
