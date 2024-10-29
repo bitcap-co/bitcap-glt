@@ -462,7 +462,7 @@ Function Request-Data
     }
     if ($config.options.checkGI)
     {
-        $gi_info = "    head -n 30 /var/log/awesome/$($miner.softwareType)*/console_output.txt > /tmp/console_output.txt;"
+        $gi_info = "    head -n 60 /var/log/awesome/$($miner.softwareType)*/console_output.txt > /tmp/console_output.txt;"
     }
     @"
 function check_depends {
