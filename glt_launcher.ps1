@@ -397,19 +397,21 @@ $AcceptButton.add_click(
         $CMD_TITLE = $instance_json.options.input.remoteIP
         if (-not $instance_json.debug.debugMode)
         {
-            $miners = (Get-Content .\miners.json) | ConvertFrom-Json
-            foreach ($miner in $miners)
+            if ((Test-Path .\miners.json))
             {
-                if ($miner.hostname -eq $instance_json.options.input.remoteIP)
+                $miners = (Get-Content .\miners.json) | ConvertFrom-Json
+                foreach ($miner in $miners)
                 {
-                    $CMD_TITLE = $($miner.name)
-                    Break
+                    if ($miner.hostname -eq $instance_json.options.input.remoteIP)
+                    {
+                        $CMD_TITLE = $($miner.name)
+                        Break
+                    }
                 }
             }
         }
         else
         {
-            $miner = (Get-Content .\miner.json) | ConvertFrom-Json
             $CMD_TITLE = '- DEBUG -'
         }
 
