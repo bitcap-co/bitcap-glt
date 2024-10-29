@@ -3,7 +3,10 @@
     "gitlabToken": "",
     "forceLocalPrograms": false,
     "params": {
-        "awesomeHostURL": "",
-        "awesomeAPIKey": ""
+        "awesomeMinerAPIConfig": {
+            enabled: false,
+            "awesomeHostURL": "",
+            "awesomeAPIKey": ""
+        }
     }
 }

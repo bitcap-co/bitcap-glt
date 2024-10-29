@@ -23,8 +23,9 @@ $PSScriptInfo = (Test-ScriptFileInfo .\glt_launcher.ps1)
 $config = (Get-Content config.json) | ConvertFrom-Json
 
 $FORCE_LOCAL = $config.forceLocalPrograms
-$AM_API_URL = $config.params.awesomeHostURL
-$AM_API_KEY = $config.params.awesomeAPIKey
+$AM_API = $config.params.awesomeMinerAPIConfig.enabled
+$AM_API_URL = $config.params.awesomeMinerAPIConfig.awesomeHostURL
+$AM_API_KEY = $config.params.awesomeMinerAPIConfig.awesomeAPIKey
 $GITLAB_PROJECT_URL = 'https://gitlab.com/api/v4/projects/'
 
 
@@ -113,9 +114,14 @@ Function Get-Miner-Obj
 }
 
 
-Function Update-Miner-List
+Function Update-AM-Miner-List
 {
     # Fetch and store all miners from the AM dashboard
+    if (-not $AM_API_URL -or -not $AM_API_KEY)
+    {
+        Write-Warning "No AM API key or AM API host provided. Please check config.json."
+        return
+    }
     $ProgressPreference = 'SilentlyContinue'
     $miners = (Invoke-WebRequest -UseBasicParsing -Uri "$AM_API_URL/miners?key=$AM_API_KEY").Content | ConvertFrom-Json
     $ProgressPreference = 'Continue'
@@ -306,7 +312,14 @@ $OptToolButtonDefault.add_click(
 # Hook 'Refresh Miner List' button to fetch latest data from am api
 $OptToolButtonRefresh.add_click(
     {
-        Update-Miner-List
+        if ($AM_API)
+        {
+            Update-AM-Miner-List
+        }
+        else
+        {
+            Write-Warning 'AwesomeMiner API is disabled in config. Ignoring...'
+        }
     }
 )
 
@@ -422,7 +435,14 @@ else
 if (-not (Test-Path .\miners.json))
 {
     Write-Verbose 'Detected first-time launch. fetching miner list...'
-    # Update-Miner-List
+    if ($AM_API)
+    {
+        Update-AM-Miner-List
+    }
+    else
+    {
+        Write-Warning 'AwesomeMiner API is disabled in config. Ignoring...'
+    }
     # Make a shortcut to the app on the desktop
     $WScriptShell = New-Object -ComObject WScript.Shell
     $app_shortcut = $WScriptShell.CreateShortcut("$env:USERPROFILE\Desktop\glt_launcher.exe.lnk")
@@ -431,13 +451,22 @@ if (-not (Test-Path .\miners.json))
     $app_shortcut.IconLocation = "$ScriptPath\resources\icons\BitCapLngLogo_BLK-04.ico"
     $app_shortcut.Save()
 }
-
-# update miner list if older than a week
-# $last_accessed = (Get-Item .\miners.json).LastWriteTime | Get-Date -UFormat %s
-# if ((Get-Date -UFormat %s) - $last_accessed -ge 604800)
-# {
-#     Update-Miner-List
-# }
+else
+{
+    if ($AM_API)
+    {
+        # update miner list if older than a week
+        $last_accessed = (Get-Item .\miners.json).LastWriteTime | Get-Date -UFormat %s
+        if ((Get-Date -UFormat %s) - $last_accessed -ge 604800)
+        {
+            Update-AM-Miner-List
+        }
+    }
+    else
+    {
+        Write-Warning 'AwesomeMiner API is disabled in config. Ignoring...'
+    }
+}
 
 Write-Verbose 'Activating and Showing GUI dialog...'
 $XAML_GUI.Activate() | Out-Null

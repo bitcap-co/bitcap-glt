@@ -6,12 +6,9 @@ Param (
 if (! $ConfigFile) { $ConfigFile = '.\instance.json' }
 $config = (Get-Content $ConfigFile) | ConvertFrom-Json
 
-$AM_API_URL = $config.params.awesomeHostURL
-if (-not $config.debug.debugMode -and -not $config.tests.testMode)
-{
-    if (! $config.params.awesomeAPIKey) { Throw 'ERROR (Missing API Key: Provide the api key with -AwesomeAPIKey)' }
-}
-$AM_API_KEY = $config.params.awesomeAPIKey
+$AM_API = $config.params.awesomeMinerAPIConfig.enabled
+$AM_API_URL = $config.params.awesomeMinerAPIConfig.awesomeHostURL
+$AM_API_KEY = $config.params.awesomeMinerAPIConfig.awesomeAPIKey
 
 # External Programs
 $putty = $config.programs.putty
@@ -87,7 +84,7 @@ Function Find-GPU-Context-Offset
 }
 
 
-Function Find-GPU-Miner
+Function Find-AM-GPU-Miner
 {
     $miners = (Get-Content .\miners.json) | ConvertFrom-Json
     if (-not $config.options.checkBypassAM)
@@ -765,14 +762,19 @@ if (-not $config.debug.debugMode -and -not $config.tests.testMode)
         $cmd_args = "-ssh -l $username -pw `"$pl_passwd`" $remote_ip"
         Start-Process -FilePath $putty -ArgumentList $cmd_args
     }
-    $miner = Find-GPU-Miner
+    if ($AM_API)
+    {
+        $miner = Find-AM-GPU-Miner
+    }
     Write-Verbose "Setting up remote connection to $remote_ip..."
     Request-Data
 
     Remove-Variable pl_passwd -ErrorAction SilentlyContinue
 }
-# else
-# { $miner = (Get-Content .\miner.json) | ConvertFrom-Json }
+elseif ((Test-Path .\miner.json))
+{
+    $miner = (Get-Content .\miner.json) | ConvertFrom-Json
+}
 
 $PIRQ_FOUND = $FALSE # Flag for $PIRQ table found
 $mb_product_name = (Get-Baseboard-Product-Name)
