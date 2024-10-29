@@ -431,6 +431,16 @@ else
     if (!$ScriptPath) { $ScriptPath = '.' }
 }
 
+# set default for $CheckBypassAM whether or not $AM_API is enabled
+if ($AM_API)
+{
+    $CheckBypassAM.IsChecked = $FALSE
+}
+else
+{
+    $CheckBypassAM.IsChecked = $TRUE
+}
+
 # first-time launch
 if (-not (Test-Path .\miners.json))
 {
