@@ -1,6 +1,4 @@
 {
-    "gitlabProjectID": "",
-    "gitlabToken": "",
     "forceLocalPrograms": false,
     "params": {
         "awesomeMinerAPIConfig": {

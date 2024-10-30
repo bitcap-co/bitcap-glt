@@ -26,7 +26,6 @@ $FORCE_LOCAL = $config.forceLocalPrograms
 $AM_API = $config.params.awesomeMinerAPIConfig.enabled
 $AM_API_URL = $config.params.awesomeMinerAPIConfig.awesomeHostURL
 $AM_API_KEY = $config.params.awesomeMinerAPIConfig.awesomeAPIKey
-$GITLAB_PROJECT_URL = 'https://gitlab.com/api/v4/projects/'
 
 
 Function Get-Version
@@ -39,58 +38,6 @@ Function Show-Help
 {
     $cmd_args = '.\help_man.ps1;', 'PAUSE'
     Start-Process -FilePath powershell.exe -ArgumentList $cmd_args
-}
-
-
-Function Update-Script
-{
-    if (! $config.gitlabToken)
-    {
-        Write-Error 'Failed to find release API Token! Skipping update...'
-        return
-    }
-    $TOKEN = $config.gitlabToken
-
-    $PROJECT_ID = $config.gitlabProjectID
-    $AuthHeader = @{
-        'PRIVATE-TOKEN' = "$TOKEN"
-    }
-
-    $latest_release = (Invoke-WebRequest -UseBasicParsing -Uri "$GITLAB_PROJECT_URL$PROJECT_ID/releases/permalink/latest" -Headers $AuthHeader).Content | ConvertFrom-Json
-    $latest_release_tag = ($latest_release.tag_name).Substring(1)
-    $latest_package = $latest_release.assets.links[1]
-    $latest_package_name = $latest_package.name
-    $latest_package_url = $latest_package.url
-    $latest_package_sum = $latest_release.assets.links[0].url
-    if ($latest_release_tag -ne $PSScriptInfo.Version)
-    {
-        Write-Verbose "Fetching latest assets from release $latest_release_tag"
-        Invoke-WebRequest -UseBasicParsing -Uri $latest_package_sum -Headers $AuthHeader -OutFile 'dist.md5'
-        Invoke-WebRequest -UseBasicParsing -Uri $latest_package_url -Headers $AuthHeader -OutFile "$latest_package_name"
-        # make sure we succeced
-        if (Test-Path -Path ".\$latest_package_name")
-        {
-            Write-Verbose 'Fetched latest release!'
-            # check checksums
-            Write-Verbose 'Validating release against checksum...'
-            $our_sum = (Get-Content .\dist.md5).Split()[0].Trim()
-            $generated_sum = (Get-FileHash -Algorithm MD5 ".\$latest_package_name").Hash
-            if ($our_sum -eq $generated_sum)
-            {
-                Write-Verbose 'Overriding current directory with latest changes...'
-                $cmd_args = '/k', 'TITLE', 'glt_updater', '&', 'powershell.exe', '-Command', 'Expand-Archive', '-Path', ".\$latest_package_name", '-DestinationPath', '..\..\..\', '-Force;', "Remove-Item .\$latest_package_name,", 'dist.md5', '&&', "echo Successfully updated to v$latest_release_tag! Please relaunch the tool."
-                Start-Process -FilePath $CMD -ArgumentList $cmd_args
-                Exit 0
-            }
-            else
-            { Write-Error 'Failed to validate release asset! Skipping update...' }
-        }
-        Remove-Item ".\$latest_package_name" -ErrorAction SilentlyContinue
-        Remove-Item '.\dist.md5' -ErrorAction SilentlyContinue
-    }
-    else
-    { Write-Warning 'Already on latest release! Skipping update...' }
-    Remove-Variable TOKEN
 }
 
 
@@ -334,7 +281,7 @@ $AboutButtonHelp.add_click(
 # Hook 'Check for updates' to fetch latest release
 $AboutButtonUpdate.add_click(
     {
-        Update-Script
+        # Update-Script
     }
 )
 
