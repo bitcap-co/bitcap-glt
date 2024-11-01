@@ -29,7 +29,7 @@
             </MenuItem>
             <MenuItem Header="About">
                 <MenuItem Name="AboutButtonHelp" Header="Help" ToolTip="Shows the help output in the command window." />
-                <MenuItem Name="AboutButtonUpdate" Header="Check For Updates" ToolTip="Checks for new release and updates if available." IsEnabled="False" />
+                <MenuItem Name="AboutButtonUpdate" Header="Check For Updates" ToolTip="Goes to latest release on GitHub for download." />
                 <MenuItem Name="AboutTagVersion" Header="Version " IsEnabled="False" />
             </MenuItem>
         </Menu>

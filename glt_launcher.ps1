@@ -20,7 +20,7 @@ glt launcher
 $VerbosePreference = 'SilentlyContinue'
 $PSScriptInfo = (Test-ScriptFileInfo .\glt_launcher.ps1)
 
-$config = (Get-Content config.json) | ConvertFrom-Json
+$config = (Get-Content .\config.json) | ConvertFrom-Json
 
 $FORCE_LOCAL = $config.forceLocalPrograms
 $AM_API = $config.params.awesomeMinerAPIConfig.enabled
@@ -38,6 +38,12 @@ Function Show-Help
 {
     $cmd_args = '.\help_man.ps1;', 'PAUSE'
     Start-Process -FilePath powershell.exe -ArgumentList $cmd_args
+}
+
+
+function Update-Script
+{
+    Start-Process 'https://github.com/bitcap-co/bitcap-glt/releases/latest'
 }
 
 
@@ -281,7 +287,7 @@ $AboutButtonHelp.add_click(
 # Hook 'Check for updates' to fetch latest release
 $AboutButtonUpdate.add_click(
     {
-        # Update-Script
+        Update-Script
     }
 )
 
