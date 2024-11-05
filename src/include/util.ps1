@@ -1,3 +1,18 @@
+## GETTERS
+Function Get-Baseboard-Product-Name
+{
+    return (Get-Content .\mb_product_name.txt)
+}
+
+
+Function Get-PCI-Handle-Count
+{
+    $pci_handles = @((Get-Content .\dmidecodet9.txt | Select-String -Pattern 'Handle ' -AllMatches) | ForEach-Object { $_ | Show-Column -Column 1 })
+    return $pci_handles.Count
+}
+## END GETTERS
+
+
 Function Show-Column
 {
     param (
