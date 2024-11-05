@@ -227,19 +227,6 @@ Function Read-PCI-Slot-Info
 }
 
 
-Function Get-PCI-Handle-Count
-{
-    $pci_handles = @((Get-Content .\dmidecodet9.txt | Select-String -Pattern 'Handle ' -AllMatches) | ForEach-Object { $_ | Show-Column -Column 1 })
-    return $pci_handles.Count
-}
-
-
-Function Get-Baseboard-Product-Name
-{
-    return (Get-Content .\mb_product_name.txt)
-}
-
-
 Function Request-Data
 {
     # Need to make manual connection first to accept remote host key
