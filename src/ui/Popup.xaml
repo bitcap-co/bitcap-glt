@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:glt_frontend" x:Name="Popup"
-        Title="Popup" Height="230" Width="300" FontFamily="Consolas" Foreground="#FFEEEEEE" FontSize="14" HorizontalAlignment="Center" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Topmost="True" WindowStyle="ToolWindow" >
+        Title="Popup" Height="230" Width="300" FontFamily="Consolas" Foreground="#FFEEEEEE" FontSize="14" HorizontalAlignment="Center" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" Topmost="True" >
     <Window.Background>
         <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,0.4">
             <GradientStop Color="#FF0D2445"/>
