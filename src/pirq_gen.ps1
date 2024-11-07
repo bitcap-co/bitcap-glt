@@ -20,7 +20,8 @@ $get_system = @"
 for d in system-manufacturer system-product-name bios-release-date bios-version; do echo `"`${d^} : `" `$(echo `"$pl_passwd`" | sudo -S -k dmidecode -s `$d); done > /tmp/dmidecodebios.txt
 echo `"$pl_passwd`" | sudo -S -k dmidecode -s baseboard-product-name > /tmp/mb_product_name.txt
 echo `"$pl_passwd`" | sudo -S -k biosdecode > /tmp/biosdecode.txt
-cd /tmp && tar -jcf - dmidecodebios.txt mb_product_name.txt biosdecode.txt
+lspci -mm > /tmp/lspcimm.txt
+cd /tmp && tar -jcf - dmidecodebios.txt mb_product_name.txt biosdecode.txt lspcimm.txt
 "@
 
 $get_pirq_slot = @"
