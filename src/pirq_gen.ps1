@@ -63,7 +63,7 @@ Function Request-Data
 
 
 # Load in WPF depends
-Write-Verbose 'Trying to load WPF dependecies...'
+Write-Verbose 'Loading in WPF dependecies...'
 try
 {
     Add-Type -AssemblyName PresentationCore, PresentationFramework, WindowsBase, System.Windows.Forms
@@ -73,8 +73,6 @@ catch
 
 [xml]$XML_WPF_INPUT = Get-Content -Path .\ui\Input.xaml
 [xml]$XML_WPF_POPUP = Get-Content -Path .\ui\Popup.xaml
-
-
 $XAML_INPUT = [System.Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $XML_WPF_INPUT))
 $XAML_POPUP = [System.Windows.Markup.XamlReader]::Load((New-Object System.Xml.XmlNodeReader $XML_WPF_POPUP))
 
@@ -88,32 +86,31 @@ Write-Verbose 'Importing objects from Popup xaml...'
 $XML_WPF_POPUP.SelectNodes("//*[@*[contains(translate(name(.),'n','N'),'Name')]]") | ForEach-Object {
     Set-Variable -Name ($_.Name) -Value $XAML_POPUP.FindName($_.Name)
 }
+# Get window icon uri
+$icon_uri = New-Object System.uri((Get-ChildItem '.\resources\icons\BitCapLngLogo_BLK-04.png').FullName)
 
-$icon_URI = New-Object System.uri((Get-ChildItem '.\resources\icons\BitCapLngLogo_BLK-04.png').FullName)
-
-$UserInput.Icon = New-Object System.Windows.Media.Imaging.BitmapImage $icon_URI
-$UserInput.Title = '$PIRQ Generation'
-$USER_CONTINUE = $FALSE
-$USER_TEXT = ''
+# UserInput
+$UserInput.Icon = New-Object System.Windows.Media.Imaging.BitmapImage $icon_uri
+$UserInput.Title = '$PIRQ Map Generation: Configuration'
 $YesButton.add_click(
     {
-        $USER_CONTINUE = $TRUE
-        $USER_TEXT = $TextInput.Text
+        Set-Variable -Name USER_CONTINUE -Value $TRUE -Scope Global
         $UserInput.Close()
     }
 )
 $NoButton.add_click(
     {
-        $USER_CONTINUE = $FALSE
+        Set-Variable -Name USER_CONTINUE -Value $FALSE -Scope Global
         $UserInput.Close()
     }
 )
 
-$Popup.Icon = New-Object System.Windows.Media.Imaging.BitmapImage $icon_URI
+# Popup
+$Popup.Icon = New-Object System.Windows.Media.Imaging.BitmapImage $icon_uri
 $Popup.Title = 'Information Dialog'
 $AcceptButton.add_click(
     {
-        $Popup.Close()
+        $Popup.Hide()
     }
 )
 
@@ -121,6 +118,7 @@ $remote_ip = $config.options.input.remoteIP
 $username = $config.options.input.username
 $remote_passwd = $config.options.input.passwd
 
+Write-Verbose "Setting up remote connection to $remote_ip..."
 if (! $username.Length)
 {
     $username = 'user'
@@ -135,14 +133,13 @@ else
 $pl_passwd = Unprotect-SecureString $remote_passwd
 $remote_passwd = $remote_passwd.Dispose()
 
-Write-Verbose "Setting up remote connection to $remote_ip..."
 # initial system check
+Write-Verbose "Getting system info from $remote_ip..."
 Request-Data -Payload $get_system -OutName $remote_ip -StoreAsArchive
 
 Remove-Variable pl_passwd -ErrorAction SilentlyContinue
 
-
-$PIRQ_FOUND = $FALSE
+# Get baseboard name
 $mb_product_name = (Get-Baseboard-Product-Name)
 $mb_product = (Update-Baseboard-Product-Name)
 
@@ -169,9 +166,6 @@ if ((Test-For-PIRQ-Table) -eq 1)
         Exit 0
     }
 }
-
-$PIRQ_FOUND = $TRUE
-
 
 # Generate the PIRQ MAP
 
