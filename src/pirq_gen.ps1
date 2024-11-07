@@ -169,5 +169,80 @@ if ((Test-For-PIRQ-Table) -eq 1)
 
 # Generate the PIRQ MAP
 
+# Show user what we found
+$TextInformation.Text = "
+IP Addr: $remote_ip
+`$PIRQ FOUND!
+Baseboard Name: $mb_product_name
+Manufacturer:$(Get-Content .\dmidecodebios.txt | Select-String -Pattern 'System-manufacturer' | Show-Column -Delimiter ':' -Column 1)
+BIOS Release:$(Get-Content .\dmidecodebios.txt | Select-String -Pattern 'Bios-release-date' | Show-Column -Delimiter ':' -Column 1)
+BIOS Version:$(Get-Content .\dmidecodebios.txt | Select-String -Pattern 'Bios-version' | Show-Column -Delimiter ':' -Column 1)
+"
+$XAML_POPUP.Activate | Out-Null
+$XAML_POPUP.ShowDialog()
+if ($XAML_POPUP.Visibility -eq 'Hidden')
+{
+    $TextQuestion.Text = 'How many system PCI(E) slots are available?'
+    $XAML_INPUT.Activate | Out-Null
+    $result = $XAML_INPUT.ShowDialog()
+    if (-not $result)
+    {
 
+    }
+}
 
+if ($USER_CONTINUE)
+{
+    $n_system_slots = $TextInput.Text -as [int]
+    if ($null -eq $n_system_slots)
+    { Throw 'ERROR (Invalid Input: Please input number of PCI(E) slots)' }
+    Write-Verbose $n_system_slots
+    $pirq_map = @()
+    $busid_ignore = @()
+    # figure out ethernet bus id to ignore
+    $eth_bus_id = (Get-Content .\lspcimm.txt | Select-String -Pattern "Ethernet").Line | Show-Column -Column 0
+    $busid_ignore += $eth_bus_id.Split('.')[0]
+    $Popup.Title = '$PIRQ Map Generation: Setup'
+    $TextInformation.Text = 'Starting $PIRQ Map generation! Have access to the system. Remove the GPU devices from the system and follow the on-screen instructions. Press Ok to start.'
+    $result = $XAML_POPUP.ShowDialog()
+    if (-not $result)
+    {
+        for ($i = 0; $i -lt $n_system_slots; $i++)
+        {
+            $slot_number = $($i + 1)
+            $Popup.Title = "`$PIRQ Map Generation : Slot $slot_number"
+            $TextInformation.Text = "Please install an GPU device in Slot $slot_number and boot up system. Once online, press Ok."
+            $result = $XAML_POPUP.ShowDialog()
+            if (-not $result)
+            {
+                # wait for ip
+                if (Test-Connection -ComputerName $remote_ip -Quiet)
+                {
+                    Request-Data -Payload $get_pirq_slot -OutName biosdecode.txt
+                    # parse and record new slot number
+                    $pirq_slot_number_line_matches = (Get-Content .\biosdecode.txt | Select-string -Pattern 'slot(?: number | )([0-9]{1,})').Line
+                    foreach ($line in $pirq_slot_number_line_matches)
+                    {
+                        $is_ignore = $FALSE
+                        foreach ($bus in $busid_ignore)
+                        {
+                            if (($line | Select-String -Pattern $bus).Matches)
+                            {
+                                $is_ignore = $TRUE
+                                break
+                            }
+                        }
+                        if ($is_ignore) { continue }
+                        $bus_id = ($line | Select-String -Pattern 'ID (:[0-9a-f]{2})(:00)')
+                        $pirq_slot_number = ($line | Select-String -Pattern 'slot(?: number | )([0-9]{1,})').Matches.Groups[1].Value
+                        $pirq_map += $pirq_slot_number
+                        $busid_ignore += $bus_id
+                        break
+                    }
+                }
+            }
+        }
+        # output map
+        Write-Verbose "$pirq_map"
+    }
+}
