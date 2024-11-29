@@ -26,8 +26,8 @@ cd /tmp && tar -jcf - dmidecodebios.txt mb_product_name.txt biosdecode.txt lspci
 
 $get_pirq_slot = @"
 echo `"$pl_passwd`" | sudo -S -k biosdecode
-echo `"$pl_passwd`" | sudo -S -k shutdown now
 "@
+# echo `"$pl_passwd`" | sudo -S -k shutdown now
 
 
 Function Request-Data
