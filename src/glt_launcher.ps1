@@ -199,7 +199,7 @@ try
 catch
 { Throw 'ERROR (Failed Operation: Unable to load WPF Dependencies)' }
 
-$GUI_PATH = '.\GUI.xaml'
+$GUI_PATH = '.\ui\GUI.xaml'
 [xml]$XML_WPF = Get-Content -Path $GUI_PATH
 
 if (! $XML_WPF) { Throw "ERROR (Failed Operation: Unabled to find 'GUI.xaml' in script directory.)" }

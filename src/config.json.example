@@ -2,7 +2,7 @@
     "forceLocalPrograms": false,
     "params": {
         "awesomeMinerAPIConfig": {
-            enabled: false,
+            "enabled": false,
             "awesomeHostURL": "",
             "awesomeAPIKey": ""
         }
