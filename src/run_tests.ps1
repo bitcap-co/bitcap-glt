@@ -1,4 +1,4 @@
-. .\include\p7zip_util.ps1
+. .\include\p7zip.ps1
 if (Test-Path -Path '.\instance.json')
 {
     $instance = (Get-Content '.\instance.json') | ConvertFrom-Json
