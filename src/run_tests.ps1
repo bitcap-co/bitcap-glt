@@ -1,4 +1,4 @@
-. .\p7zip_util.ps1
+. .\include\p7zip.ps1
 if (Test-Path -Path '.\instance.json')
 {
     $instance = (Get-Content '.\instance.json') | ConvertFrom-Json
@@ -68,7 +68,7 @@ Function Test-Expected-Value
 
 
 $test_results = @()
-$test_dirs = '.\tests\Amd', '.\tests\Baseboards', '.\tests\Nvidia'
+$test_dirs = '..\tests\Amd', '..\tests\Baseboards', '..\tests\Nvidia'
 foreach ($test_path in $test_dirs)
 {
     if (Test-Path $test_path)

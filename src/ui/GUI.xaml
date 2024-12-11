@@ -27,6 +27,9 @@
                 <MenuItem Name="OptToolButtonDefault" Header="Set Default Password" ToolTip="Sets the supplied password as the default for future use." />
                 <MenuItem Name="OptToolButtonRefresh" Header="Refresh Miner List" ToolTip="Updates the miner list from the AM dashboard." />
             </MenuItem>
+            <MenuItem Header="Generation">
+                <MenuItem Name="GenCheckGeneratePIRQManual" Header="Generate $PIRQ Map (Manual)" ToolTip="" />
+            </MenuItem>
             <MenuItem Header="About">
                 <MenuItem Name="AboutButtonHelp" Header="Help" ToolTip="Shows the help output in the command window." />
                 <MenuItem Name="AboutButtonUpdate" Header="Check For Updates" ToolTip="Goes to latest release on GitHub for download." />
